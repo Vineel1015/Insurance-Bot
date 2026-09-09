@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Your appeal letter — Appeal Helper{% endblock %}
+{% block content %}
+
+<h1>Your appeal letter</h1>
+
+<div class="card {{ 'card-success' if r.readiness == 'ready_to_send' else 'card-warning' }}">
+  {% if r.readiness == 'ready_to_send' %}
+    <p><strong>This looks ready to send.</strong> Review it below, then send it yourself to the address or fax on file.</p>
+  {% else %}
+    <p><strong>Almost there — a few things need your attention before this is ready to send:</strong></p>
+    <ul>
+      {% for reason in r.readiness_reasons %}<li>{{ reason }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+{% if r.deadline %}
+  <div class="card card-muted">
+    <p>
+      <strong>Appeal deadline: {{ r.deadline | human_date }}</strong>
+      {% if r.deadline_is_assumed %}
+        — we couldn't find an exact deadline in your letter, so this is an estimate. Please check the letter itself.
+      {% endif %}
+    </p>
+  </div>
+{% endif %}
+
+{% if r.validation_flags %}
+  <div class="card card-warning">
+    <strong>Please double-check these before sending:</strong>
+    <ul>
+      {% for f in r.validation_flags %}<li>{{ f.message }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<h2>The letter</h2>
+<p class="muted">
+  Anything shown as <span class="fill-in">[[ FILL IN — ... ]]</span> is something we
+  couldn't find from your letter or your answers — replace it before sending.
+  This is a draft for you to review and edit, not a final document.
+</p>
+<div class="card letter-text">{{ r.letter_text }}</div>
+<a class="btn-secondary" href="{{ url_for('download', case_id=case_id) }}">Download as a text file</a>
+
+<h2>Where to send it</h2>
+<div class="card">
+  <ul class="plain-list">
+    {% if r.submission.portal_url %}<li>Online: {{ r.submission.portal_url }}</li>{% endif %}
+    {% if r.submission.fax %}<li>Fax: {{ r.submission.fax }}</li>{% endif %}
+    {% if r.submission.phone %}<li>Phone: {{ r.submission.phone }}</li>{% endif %}
+    {% if r.submission.address %}<li>Mail: {{ r.submission.address }}</li>{% endif %}
+    {% if not (r.submission.portal_url or r.submission.fax or r.submission.phone or r.submission.address) %}
+      <li>We couldn't find a submission address. Check your denial letter or the back of your insurance card.</li>
+    {% endif %}
+  </ul>
+</div>
+
+<h2>What to attach</h2>
+<div class="card">
+  <form action="{{ url_for('update_checklist', case_id=case_id) }}" method="post">
+    <ul class="checklist">
+      {% for item in r.evidence_checklist %}
+        <li>
+          <label>
+            <input type="checkbox" name="in_hand" value="{{ item.id }}" {% if item.in_hand %}checked{% endif %}>
+            <strong>{{ item.item }}</strong>
+            {% if item.required %}<span class="badge badge-required">needed</span>{% else %}<span class="badge">optional</span>{% endif %}
+          </label>
+          <p class="hint">{{ item.how_to_get }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+    <button type="submit" class="btn-secondary">Update — I have these</button>
+  </form>
+</div>
+
+{% if r.escalation and r.escalation.expedited_if %}
+  <h2>If this is urgent</h2>
+  <div class="card card-muted">
+    <p>{{ r.escalation.expedited_if }}</p>
+    {% if r.escalation.external_review_note %}<p>{{ r.escalation.external_review_note }}</p>{% endif %}
+  </div>
+{% endif %}
+
+{% if r.pitfalls %}
+  <h2>Common mistakes to avoid</h2>
+  <div class="card card-muted">
+    <ul>
+      {% for p in r.pitfalls %}<li>{{ p }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<h2>Get a reminder before your deadline</h2>
+<div class="card">
+  <form action="{{ url_for('remind', case_id=case_id) }}" method="post">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name">
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email">
+    <label for="phone">Phone</label>
+    <input type="tel" id="phone" name="phone">
+    <button type="submit" class="btn-primary">Remind me before the deadline</button>
+  </form>
+</div>
+
+<form action="{{ url_for('delete_case', case_id=case_id) }}" method="post" class="delete-form">
+  <button type="submit" class="btn-danger">Delete my data</button>
+</form>
+
+{% endblock %}

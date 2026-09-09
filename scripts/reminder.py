@@ -41,7 +41,7 @@ from typing import Callable
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from schema_utils import get_field  # noqa: E402
+from schema_utils import get_field, human_date  # noqa: E402
 from validate_rules import run_validation  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -231,9 +231,6 @@ def decide(state: dict, today: date | None = None) -> str | None:
 
 # ---------------------------------------------------------------- content --
 
-def _fmt_date(iso: str) -> str:
-    return datetime.strptime(iso, "%Y-%m-%d").strftime("%B %d, %Y").replace(" 0", " ")
-
 
 def _submission_line(ctx: dict) -> str:
     s = ctx.get("submission") or {}
@@ -267,7 +264,7 @@ def render_email(kind: str, state: dict, today: date) -> dict:
     name = state["contact"].get("name") or "there"
     insurer = ctx.get("insurer_name") or "your insurer"
     service = ctx.get("service_description") or "your claim"
-    deadline_str = _fmt_date(ctx["deadline"]) if ctx.get("deadline") else "your deadline"
+    deadline_str = human_date(ctx["deadline"]) if ctx.get("deadline") else "your deadline"
     days_left = (_today(ctx["deadline"]) - today).days if ctx.get("deadline") else None
 
     if kind == PRE_DEADLINE:
@@ -336,7 +333,7 @@ def render_email(kind: str, state: dict, today: date) -> dict:
 def render_sms(kind: str, state: dict, today: date) -> str:
     ctx = state["context"]
     insurer = ctx.get("insurer_name") or "your insurer"
-    deadline_str = _fmt_date(ctx["deadline"]) if ctx.get("deadline") else "soon"
+    deadline_str = human_date(ctx["deadline"]) if ctx.get("deadline") else "soon"
     days_left = (_today(ctx["deadline"]) - today).days if ctx.get("deadline") else None
 
     if kind == PRE_DEADLINE:

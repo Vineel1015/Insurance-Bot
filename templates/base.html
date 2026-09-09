@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Appeal Helper{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('index') }}">Appeal Helper</a>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      This tool explains denial letters and helps you draft your own appeal.
+      It is not legal advice or medical advice, and it does not send anything
+      on your behalf — you review and send the letter yourself.
+    </p>
+    <p>
+      We don't keep your uploaded document. It's deleted immediately after
+      we read it, and nothing about your case is stored beyond this
+      browser session unless you ask us to set a deadline reminder.
+    </p>
+  </footer>
+</body>
+</html>

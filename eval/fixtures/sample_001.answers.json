@@ -1,5 +1,7 @@
 {
   "doctor_recommended": true,
+  "treating_physician_name": "Dr. Alice Smith",
+  "relevant_specialty": "Orthopedics",
   "diagnosis_plain": "chronic lower back pain from a suspected disc problem",
   "has_lmn": false,
   "tried_alternatives": "physical therapy for eight weeks and over-the-counter pain medication",

@@ -30,11 +30,11 @@ import json
 import os
 import re
 import sys
-from datetime import date, datetime
+from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from schema_utils import get_field, validate_instance  # noqa: E402
+from schema_utils import get_field, human_date, validate_instance  # noqa: E402
 from validate_rules import run_validation  # noqa: E402
 
 import yaml  # noqa: E402
@@ -81,7 +81,12 @@ def load_playbook_entry(reason_category: str | None) -> tuple[dict, bool]:
 
 # --------------------------------------------------------- requirements ----
 
-def _requirement_met(expected, answer) -> bool:
+def requirement_met(expected, answer) -> bool:
+    """Evaluates one {question_id: expected} predicate against an answer.
+    Shared grammar for argument.requires.questions and a question's own
+    depends_on (see playbook/_template.yaml) — the web app's question flow
+    uses this same function to decide which follow-up questions to show.
+    """
     if answer is None:
         return False
     if expected == "nonempty":
@@ -94,9 +99,29 @@ def _requirement_met(expected, answer) -> bool:
 def argument_questions_met(arg: dict, answers: dict) -> bool:
     required_questions = (arg.get("requires") or {}).get("questions") or {}
     for qid, expected in required_questions.items():
-        if qid not in answers or not _requirement_met(expected, answers[qid]):
+        if qid not in answers or not requirement_met(expected, answers[qid]):
             return False
     return True
+
+
+def pending_questions(playbook: dict, answers: dict) -> list[dict]:
+    """Clarifying questions not yet answered whose depends_on (if any) is
+    satisfied by the answers so far — top-level questions are always
+    included until answered; a follow-up appears only once its trigger
+    question has been answered the right way. Used by the web app to drive
+    a multi-round question flow without needing to know in advance how many
+    rounds a category has (see playbook/README.md's "Closing placeholder
+    gaps" section — depends_on chains are never more than one level deep).
+    """
+    pending = []
+    for q in playbook["clarifying_questions"]:
+        if q["id"] in answers:
+            continue
+        dep = q.get("depends_on") or {}
+        if dep and not all(requirement_met(v, answers.get(k)) for k, v in dep.items()):
+            continue
+        pending.append(q)
+    return pending
 
 
 def select_arguments(playbook: dict, extraction: dict, answers: dict) -> list[dict]:
@@ -138,25 +163,15 @@ def _flatten(node, prefix, out: dict) -> None:
         out[prefix] = node
 
 
-def _format_date(value: str) -> str:
-    if isinstance(value, str) and ISO_DATE_RE.match(value):
-        try:
-            return datetime.strptime(value, "%Y-%m-%d").strftime("%B %-d, %Y")
-        except ValueError:
-            try:  # Windows strftime has no %-d
-                return datetime.strptime(value, "%Y-%m-%d").strftime("%B %d, %Y").replace(" 0", " ")
-            except ValueError:
-                return value
-    return value
-
-
 def _stringify(value) -> str | None:
     if value in (None, "", []):
         return None
     if isinstance(value, list):
         return "; ".join(str(v) for v in value)
+    if isinstance(value, str) and ISO_DATE_RE.match(value):
+        return human_date(value)
     if isinstance(value, str):
-        return _format_date(value)
+        return value
     return str(value)
 
 
@@ -182,13 +197,7 @@ def build_context(extraction: dict, answers: dict, computed_deadline: date | Non
             context[qid] = s
 
     if computed_deadline:
-        context["deadline"] = computed_deadline.strftime("%B %d, %Y").replace(" 0", " ")
-
-    provider_name = get_field(extraction, "provider.provider_name")
-    if provider_name and provider_name.get("value"):
-        parts = str(provider_name["value"]).split()
-        if parts:
-            context["provider_last_name"] = parts[-1]
+        context["deadline"] = human_date(computed_deadline)
 
     return context
 
@@ -238,7 +247,20 @@ def _wrap_paragraph(text: str) -> str:
     return _REPEATED_TERMINAL_PUNCT_RE.sub(r"\1", text)
 
 
-def build_evidence_checklist(playbook: dict, selected_arguments: list[dict], evidence_in_hand: set[str]) -> list[dict]:
+def build_evidence_checklist(
+    playbook: dict,
+    selected_arguments: list[dict],
+    evidence_in_hand: set[str],
+    context: dict,
+    unresolved: set[str],
+) -> list[dict]:
+    """`how_to_get` text can itself carry {placeholders} (see
+    not_medically_necessary.yaml's letter_of_medical_necessity item, which
+    quotes a suggested message to the doctor's office including the
+    deadline) — render it through the same resolver as argument templates,
+    on the same terms: anything unresolved becomes an honest [[ FILL IN ]]
+    and is added to `unresolved`, not a silently broken sentence.
+    """
     referenced = set()
     for arg in selected_arguments:
         referenced |= set((arg.get("requires") or {}).get("evidence") or [])
@@ -249,6 +271,7 @@ def build_evidence_checklist(playbook: dict, selected_arguments: list[dict], evi
         effective_required = bool(item.get("required")) or eid in referenced
         checklist.append({
             **item,
+            "how_to_get": render_template(item.get("how_to_get", ""), context, unresolved),
             "required": effective_required,
             "referenced_by_letter": eid in referenced,
             "in_hand": eid in evidence_in_hand,
@@ -284,7 +307,7 @@ def _build_header(extraction: dict, playbook: dict, patient_contact: dict | None
             lines.append(f"[[ FILL IN — your {f} ]]")
 
     lines.append("")
-    lines.append(datetime.now().strftime("%B %d, %Y"))
+    lines.append(human_date(date.today()))
     lines.append("")
 
     insurer_name = val("insurer.name") or "[[ FILL IN — insurer name ]]"
@@ -303,7 +326,7 @@ def _build_header(extraction: dict, playbook: dict, patient_contact: dict | None
         subject += f", Claim #{claim_number}"
     lines.append(subject)
     if computed_deadline:
-        lines.append(f"Appeal deadline: {computed_deadline.strftime('%B %d, %Y').replace(' 0', ' ')}")
+        lines.append(f"Appeal deadline: {human_date(computed_deadline)}")
     lines.append("")
     lines.append("To Whom It May Concern:")
     return "\n".join(lines)
@@ -369,7 +392,7 @@ def generate_letter(
         body_paragraphs.append("I additionally request the following:")
         body_paragraphs.append("\n".join(f"  {i + 1}. {r}" for i, r in enumerate(standing_requests)))
 
-    checklist = build_evidence_checklist(playbook, selected_arguments, evidence_in_hand)
+    checklist = build_evidence_checklist(playbook, selected_arguments, evidence_in_hand, context, unresolved)
     enclosures = [i["item"] for i in checklist if i["required"]]
     if enclosures:
         body_paragraphs.append("Enclosed with this letter:")

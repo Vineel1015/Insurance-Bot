@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Upload your denial letter — Appeal Helper{% endblock %}
+{% block content %}
+
+<h1>Turn your denial letter into an appeal</h1>
+<p class="lede">
+  Upload a photo or PDF of the letter your insurer sent you. We'll explain
+  what it says, ask you a few questions, and draft an appeal letter you can
+  review, edit, and send yourself.
+</p>
+
+<div class="card">
+  <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+    <label for="document">Denial letter (PDF, JPG, PNG, or a text file)</label>
+    <input type="file" id="document" name="document" accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.md" required>
+    <button type="submit" class="btn-primary">Upload and read my letter</button>
+  </form>
+</div>
+
+<p class="muted">
+  Not ready to upload a real letter?
+  <a href="{{ url_for('demo') }}">Try it with a sample denial letter</a>
+  — nothing is uploaded, this just shows you how it works.
+</p>
+
+<div class="card card-muted">
+  <h2>Before you upload</h2>
+  <ul>
+    <li>This currently handles commercial health plans — employer, marketplace, or individual coverage. Medicare and Medicaid appeals follow a different process we don't support yet.</li>
+    <li>Your document is read once to pull out the facts, then deleted. We don't keep it.</li>
+    <li>This works best with the actual denial letter (sometimes called a "notice of adverse benefit determination"), not just the Explanation of Benefits.</li>
+  </ul>
+</div>
+
+{% endblock %}

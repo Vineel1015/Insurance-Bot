@@ -82,13 +82,26 @@ knowing before editing a playbook file:
 
 ## Closing placeholder gaps
 
-Every bare `{token}` in an argument's `template` must be answerable by some
-question's `id` in the same file, or be one of the two values the generator
-derives in code (`deadline`, `provider_last_name` — see `build_context()` in
-`letter_generator.py`). `scripts/check_playbook.py` enforces this: it fails
-if any template references a token with no matching question, so a template
-can no longer silently ship with an unclosed `[[ FILL IN ]]` gap the author
-didn't notice.
+Every bare `{token}` in an argument's `template` — and, since it's rendered
+the same way, an `evidence_checklist` item's `how_to_get` — must be
+answerable by some question's `id` in the same file, or be `deadline`, the
+one value the generator derives in code (see `build_context()` in
+`letter_generator.py`). `scripts/check_playbook.py` enforces this for
+argument templates: it fails if any template references a token with no
+matching question, so a template can no longer silently ship with an
+unclosed `[[ FILL IN ]]` gap the author didn't notice. It does not (yet)
+check `how_to_get` strings the same way — a placeholder there rendered
+*something* rather than nothing (`{provider_last_name}` used to produce
+"Dr. Center" from a facility name, not a missing-value bracket), which is
+exactly the failure mode a "must resolve to something" checker can't catch.
+Read the actual rendered checklist text when adding one, not just the
+absence of `[[ FILL IN ]]`.
+
+Be wary of adding to the derived-token list at all: a derived value can
+resolve to something confidently wrong rather than visibly missing. Prefer
+a real question (see `treating_physician_name`) over a shortcut derived
+from an extraction field whose meaning doesn't quite match what the
+template needs.
 
 Two patterns keep the up-front questionnaire short while still closing every
 gap:

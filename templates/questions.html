@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}A few questions — Appeal Helper{% endblock %}
+{% block content %}
+
+{% if first_round %}
+  <h1>Here's what your letter says</h1>
+  <p class="lede">{{ playbook.plain_english }}</p>
+  {% if used_fallback %}
+    <div class="card card-warning">
+      <p>We weren't able to match this to a specific type of denial, so we're
+      asking a few general questions instead of ones tailored to your exact
+      situation.</p>
+    </div>
+  {% endif %}
+{% else %}
+  <h1>A few more details</h1>
+{% endif %}
+
+{% if deadline %}
+  <div class="card {{ 'card-warning' if days_left is not none and days_left <= 14 else 'card-muted' }}">
+    <p>
+      <strong>Appeal deadline: {{ deadline | human_date }}</strong>
+      {% if days_left is not none %}
+        {% if days_left < 0 %}
+          — <strong>this deadline may have already passed.</strong> Late appeals are sometimes still
+          accepted, and external review may still be an option — keep going, don't give up.
+        {% elif days_left == 0 %}
+          — <strong>today is the deadline.</strong>
+        {% else %}
+          ({{ days_left }} day{{ 's' if days_left != 1 else '' }} left)
+        {% endif %}
+      {% endif %}
+      {% if deadline_is_assumed %}
+        We couldn't find an exact deadline in your letter, so this is an estimate — please check the letter itself.
+      {% endif %}
+    </p>
+  </div>
+{% endif %}
+
+<div class="card">
+  <form action="{{ url_for('questions', case_id=case_id) }}" method="post">
+    {% for q in questions %}
+      <fieldset class="question">
+        <legend>{{ q.question }}</legend>
+        {% if q.why_it_matters %}<p class="hint">{{ q.why_it_matters }}</p>{% endif %}
+
+        {% if q.answer_type == 'yes_no' %}
+          <label class="radio-inline">
+            <input type="radio" name="{{ q.id }}" value="true" required> Yes
+          </label>
+          <label class="radio-inline">
+            <input type="radio" name="{{ q.id }}" value="false"> No
+          </label>
+
+        {% elif q.answer_type == 'choice' %}
+          {% for choice in q.choices %}
+            <label class="radio-block">
+              <input type="radio" name="{{ q.id }}" value="{{ choice }}" required> {{ choice }}
+            </label>
+          {% endfor %}
+
+        {% elif q.answer_type == 'date' %}
+          <input type="date" name="{{ q.id }}">
+
+        {% else %}
+          <textarea name="{{ q.id }}" rows="3" placeholder="Type your answer, or leave blank if you're not sure"></textarea>
+        {% endif %}
+      </fieldset>
+    {% endfor %}
+
+    <button type="submit" class="btn-primary">Continue</button>
+  </form>
+</div>
+
+{% endblock %}

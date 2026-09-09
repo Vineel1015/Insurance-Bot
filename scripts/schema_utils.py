@@ -5,12 +5,24 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import date, datetime
 from typing import Any
 
 import jsonschema
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_PATH = os.path.join(ROOT, "schema", "denial_extraction.schema.json")
+
+
+def human_date(value: str | date) -> str:
+    """Formats an ISO date string or a date object as e.g. "August 9, 2026" —
+    without a leading zero on the day, portably (no reliance on the
+    non-cross-platform %-d/%#d strftime flags). Shared by letter_generator.py,
+    reminder.py, and templates/*.html so this formatting rule lives in one
+    place.
+    """
+    d = datetime.strptime(value, "%Y-%m-%d").date() if isinstance(value, str) else value
+    return d.strftime("%B %d, %Y").replace(" 0", " ")
 
 _FIELD_KINDS = {
     "str_field": (str, type(None)),

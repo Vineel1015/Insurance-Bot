@@ -214,7 +214,7 @@ evidence_checklist:
     how_to_get: >
       Call or message your doctor's office. Say: "My insurer denied
       {service.description.value} as not medically necessary and I'm appealing
-      by {deadline}. Can Dr. {provider_last_name} write a letter of medical
+      by {deadline}. Can {treating_physician_name} write a letter of medical
       necessity?" We'll give you a one-page request you can send them that lists
       what the letter should cover.
   - id: relevant_medical_records

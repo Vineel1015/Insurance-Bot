@@ -16,8 +16,16 @@ REQUIRED_TOP = [
     "escalation", "pitfalls", "weak_case_signals",
 ]
 # Bare placeholder names the letter generator resolves in code, not from a
-# question — see build_context()/derived_values() in scripts/letter_generator.py.
-DERIVED_TOKENS = {"deadline", "provider_last_name"}
+# question — see build_context() in scripts/letter_generator.py. Keep this
+# list short and be wary of adding to it: a derived value can be wrong
+# (resolves to *something*, just not the right thing) in a way this checker
+# can't catch, unlike a genuinely missing question — see the removed
+# provider_last_name for exactly that failure mode (it took the last word of
+# provider.provider_name, which is who performed/billed the service and can
+# be a facility, not a person — it silently produced "Dr. Center" from
+# "Riverside Imaging Center"). Prefer a real question over a new derived
+# token unless the value is unambiguously computable from the extraction.
+DERIVED_TOKENS = {"deadline"}
 TOKEN_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_.]*)\}")
 
 
