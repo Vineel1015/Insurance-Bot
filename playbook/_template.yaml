@@ -1,0 +1,70 @@
+# Playbook entry template. Copy to <category_id>.yaml.
+# All user-facing strings are plain English, 8th-grade reading level.
+# Never state legal or medical conclusions; frame as "you can ask", "your doctor can confirm".
+
+id: <category_id>                 # must match denial.reason_category enum
+display_name: <Short human name>
+version: 0.1.0
+
+# How insurers phrase this reason. Used by the classifier prompt as few-shot
+# hints and by evals. Pull from real letters, verbatim.
+aliases:
+  - "..."
+  - "..."
+
+# Shown to the user in step 3, before questions. 2–4 sentences.
+plain_english: >
+  ...
+
+# What the insurer was supposed to do / disclose for this kind of denial.
+# Each item becomes a "request" or an argument if it's missing from the letter.
+insurer_obligations:
+  - id: <slug>
+    text: "..."
+    if_missing_argument: <argument id>   # optional
+
+# 3–5 questions. Order by how much each changes the letter.
+clarifying_questions:
+  - id: <slug>
+    question: "..."
+    why_it_matters: "..."             # shown as helper text
+    answer_type: yes_no | free_text | date | choice
+    choices: []                        # only for answer_type: choice
+    unlocks: [<argument id>, ...]      # arguments that need this answer
+
+# Ranked. The generator includes every argument whose `requires` are satisfied,
+# in this order. `template` is a paragraph with {placeholders} from the
+# extraction schema (e.g. {service.description.value}) or question ids.
+arguments:
+  - id: <slug>
+    strength: strong | medium | weak
+    requires:
+      questions: [<question id>: <answer value>]
+      evidence: [<evidence id>]
+    claim: "One-sentence version of the argument."
+    template: >
+      ...
+
+# What to attach. Ranked; `required: true` items block "ready to send".
+evidence_checklist:
+  - id: <slug>
+    item: "..."
+    who_provides: patient | provider | insurer
+    required: true | false
+    how_to_get: "..."
+
+# Requests to include in every letter for this category.
+standing_requests:
+  - "..."
+
+# Escalation guidance shown in the checklist.
+escalation:
+  expedited_if: "..."
+  external_review_note: "..."
+
+pitfalls:
+  - "..."
+
+# When this playbook is a poor fit and the user should be told so honestly.
+weak_case_signals:
+  - "..."

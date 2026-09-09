@@ -1,0 +1,245 @@
+# Fully worked playbook entry. Other categories follow this shape.
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: not_medically_necessary
+display_name: Not medically necessary
+version: 0.1.0
+
+aliases:
+  - "does not meet medical necessity criteria"
+  - "not medically necessary"
+  - "does not meet our clinical guidelines"
+  - "does not meet the criteria for coverage"
+  - "not clinically indicated"
+  - "the clinical information provided does not support"
+  - "does not meet InterQual criteria"
+  - "does not meet MCG guidelines"
+  - "medical necessity has not been established"
+  - "a lower level of care would be appropriate"
+  - "could be safely provided in an outpatient setting"
+  - "the documentation does not support the level of service billed"
+
+plain_english: >
+  Your insurer is not saying the treatment is bad or that you don't need care.
+  They are saying that, based on the paperwork they looked at, the treatment
+  didn't meet their own written rules for when they'll pay for it. This is the
+  most common reason for denials, and it is also one of the most commonly
+  overturned, because the decision usually comes down to what information the
+  reviewer had in front of them. Your doctor's opinion and records carry a lot
+  of weight here.
+
+insurer_obligations:
+  - id: criteria_disclosed
+    text: >
+      The letter should name the specific guideline or policy used (for example
+      a medical policy number, InterQual, or MCG) and you can request a free
+      copy of it. If the letter doesn't name one, ask.
+    if_missing_argument: request_criteria
+  - id: reviewer_qualified
+    text: >
+      A medical-necessity decision should be made by a clinician with training
+      relevant to your condition. You can ask for the reviewer's name and
+      specialty.
+    if_missing_argument: request_reviewer_credentials
+  - id: file_available
+    text: >
+      You are entitled to a free copy of everything the insurer used to make
+      this decision, including the records they received from your doctor.
+    if_missing_argument: request_file
+
+clarifying_questions:
+  - id: doctor_recommended
+    question: "Did the doctor who ordered this treatment tell you it was medically necessary for your condition?"
+    why_it_matters: "The strongest appeal is your treating doctor saying, in writing, why you specifically need this."
+    answer_type: yes_no
+    unlocks: [treating_physician_supports, lmn_needed]
+  - id: has_lmn
+    question: "Do you already have a letter from your doctor explaining why you need this (sometimes called a letter of medical necessity)?"
+    why_it_matters: "If yes, we attach it. If no, we'll draft a request you can send to your doctor's office."
+    answer_type: yes_no
+    unlocks: [treating_physician_supports]
+  - id: tried_alternatives
+    question: "Have you already tried other treatments for this condition that didn't work or caused problems?"
+    why_it_matters: "Insurers often deny because they think a cheaper option hasn't been tried. Showing you tried it and it failed is a strong argument."
+    answer_type: free_text
+    unlocks: [conservative_treatment_failed]
+  - id: condition_worsening
+    question: "Is your condition getting worse, or would waiting cause serious harm?"
+    why_it_matters: "This can qualify you for a faster (expedited) appeal, decided in days instead of weeks."
+    answer_type: yes_no
+    unlocks: [urgency, expedited_request]
+  - id: records_sent
+    question: "As far as you know, did your doctor's office send the insurer your medical records before this decision?"
+    why_it_matters: "Many denials happen because the reviewer never saw the full records. If they weren't sent, that's the fix."
+    answer_type: choice
+    choices: ["Yes", "No", "Not sure"]
+    unlocks: [incomplete_record]
+
+arguments:
+  - id: treating_physician_supports
+    strength: strong
+    requires:
+      questions: { doctor_recommended: true }
+      evidence: [letter_of_medical_necessity]
+    claim: "The treating physician, who knows the patient, has determined this is medically necessary and explains why."
+    template: >
+      My treating physician, {provider.provider_name.value}, has determined that
+      {service.description.value} is medically necessary for my diagnosis of
+      {diagnosis_plain}. Their enclosed letter explains my clinical history, why
+      this treatment is appropriate for my specific situation, and the expected
+      consequences of not receiving it. A physician who has examined me and
+      managed my care is in a better position to judge medical necessity than a
+      reviewer working from a partial paper record.
+
+  - id: conservative_treatment_failed
+    strength: strong
+    requires:
+      questions: { tried_alternatives: nonempty }
+      evidence: []
+    claim: "Less intensive or cheaper alternatives have already been tried and failed, so the step the insurer would prefer has been taken."
+    template: >
+      Before this treatment was recommended, I tried {tried_alternatives}. These
+      did not adequately control my condition, as documented in the enclosed
+      records. The requested treatment is not a first resort; it is the
+      appropriate next step after conservative options were exhausted.
+
+  - id: criteria_actually_met
+    strength: strong
+    requires:
+      questions: {}
+      evidence: [insurer_criteria_document]
+    claim: "The insurer's own written criteria are met, point by point."
+    template: >
+      The denial cites {denial.criteria_cited.value}. Reviewing those criteria
+      against my medical record, each requirement is satisfied:
+      {criteria_point_by_point}. The denial does not identify which specific
+      element it believes is unmet. I ask that the reviewer identify that
+      element or reverse the decision.
+
+  - id: request_criteria
+    strength: medium
+    requires:
+      questions: {}
+      evidence: []
+    claim: "The letter does not state the specific criteria used; the insurer is required to disclose them, and a denial that cannot be checked cannot be justified."
+    template: >
+      The denial letter does not identify the specific clinical criteria,
+      guideline, or medical policy relied upon. I request a copy of the exact
+      criteria used, free of charge, as I am entitled to. I also request that the
+      appeal review identify precisely which element of those criteria my case
+      is said not to meet.
+
+  - id: incomplete_record
+    strength: medium
+    requires:
+      questions: { records_sent: ["No", "Not sure"] }
+      evidence: []
+    claim: "The original decision was made without the complete medical record. The enclosed records should be reviewed in full."
+    template: >
+      It appears the original review did not have access to my complete medical
+      record. I am enclosing the full relevant records from
+      {provider.provider_name.value}, including {records_list}. I ask that the
+      appeal be decided on the complete record rather than the information
+      originally available to the reviewer.
+
+  - id: urgency
+    strength: medium
+    requires:
+      questions: { condition_worsening: true }
+      evidence: []
+    claim: "Delay causes harm; the decision should account for the consequences of not treating."
+    template: >
+      Without this treatment, my condition is expected to {harm_of_delay}, as
+      described by my physician. Medical necessity should be assessed in light
+      of the consequences of withholding care, not only the current presentation.
+
+  - id: request_reviewer_credentials
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "The reviewer's qualifications are not stated; a decision on this condition should be made by a clinician in the relevant specialty."
+    template: >
+      The denial does not identify the reviewing clinician or their specialty.
+      I request that this appeal be reviewed by a physician board-certified in
+      {relevant_specialty}, who was not involved in the original decision, and
+      that the reviewer's name and credentials be provided with the appeal
+      decision.
+
+  - id: request_file
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the full claim file."
+    template: >
+      I request a complete copy of the claim file, including all documents,
+      records, and internal notes considered in making this decision, free of
+      charge.
+
+evidence_checklist:
+  - id: letter_of_medical_necessity
+    item: "Letter of medical necessity from your treating doctor"
+    who_provides: provider
+    required: true
+    how_to_get: >
+      Call or message your doctor's office. Say: "My insurer denied
+      {service.description.value} as not medically necessary and I'm appealing
+      by {deadline}. Can Dr. {provider_last_name} write a letter of medical
+      necessity?" We'll give you a one-page request you can send them that lists
+      what the letter should cover.
+  - id: relevant_medical_records
+    item: "Medical records that show your diagnosis, history, and what's been tried"
+    who_provides: provider
+    required: true
+    how_to_get: "Request from your doctor's office or patient portal. Ask for visit notes, test results, and imaging related to this condition."
+  - id: insurer_criteria_document
+    item: "The insurer's clinical criteria or medical policy they used"
+    who_provides: insurer
+    required: false
+    how_to_get: "Call the number on the denial letter and ask for a copy of the criteria used for this decision. They must provide it free. Many insurers also post medical policies on their website."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter itself"
+    who_provides: patient
+    required: true
+    how_to_get: "You already have it. Include a copy with your appeal."
+  - id: prior_treatment_evidence
+    item: "Records or pharmacy history showing what you tried before"
+    who_provides: provider
+    required: false
+    how_to_get: "Pharmacy printout, physical therapy notes, previous prescriptions."
+  - id: guidelines_or_literature
+    item: "Specialty society guidelines supporting this treatment for your condition"
+    who_provides: patient
+    required: false
+    how_to_get: "Your doctor may be able to cite these. Not required, but helpful when the insurer's criteria are stricter than standard practice."
+
+standing_requests:
+  - "A copy of the specific clinical criteria or medical policy used in this decision"
+  - "The name and specialty of the clinician who made the original decision and who will review the appeal"
+  - "A complete copy of the claim file"
+  - "A written decision that identifies which specific criteria element is considered unmet, if the denial is upheld"
+
+escalation:
+  expedited_if: >
+    Your doctor believes waiting for a standard appeal could seriously harm your
+    health or your ability to recover. If so, call the expedited appeal number
+    on the letter and say the word "expedited". Your doctor can also call.
+    Decisions are typically due within 72 hours.
+  external_review_note: >
+    If the internal appeal is denied, medical-necessity denials are almost
+    always eligible for external review by an independent reviewer who does not
+    work for the insurer. The denial of your appeal will tell you how to request
+    it. Roughly four months is typical for that window, but check the letter.
+
+pitfalls:
+  - "Sending the appeal without any records from the doctor. A patient-only letter rarely overturns a medical-necessity denial."
+  - "Arguing that the treatment is good in general instead of necessary for you specifically."
+  - "Waiting on the doctor's letter until the deadline is close. Request it the day you get the denial."
+  - "Missing that the letter names a specific criteria element. If it does, the appeal must address that element directly."
+  - "Assuming a 'lower level of care' denial means no coverage. It often means the insurer will pay for the same treatment in a different setting; ask."
+
+weak_case_signals:
+  - "The treating doctor does not support the treatment or won't write a letter."
+  - "The denial is for a level of care (e.g. inpatient vs outpatient) and the patient is already discharged and stable; the appeal then becomes a billing dispute for the facility, not the patient."
+  - "The service is explicitly excluded in the plan document; that is a not_a_covered_benefit case wearing medical-necessity language."

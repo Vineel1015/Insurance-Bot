@@ -1,0 +1,9 @@
+# never commit documents or model outputs
+eval/letters/*
+!eval/letters/.gitkeep
+eval/results/
+uploads/
+*.env
+.env*
+__pycache__/
+node_modules/

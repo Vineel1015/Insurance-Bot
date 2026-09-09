@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://insurance-bot.local/schema/denial_extraction.schema.json",
+  "title": "DenialLetterExtraction",
+  "description": "Structured extraction of a single health-insurance denial letter. Every extracted field carries a confidence score and verbatim evidence so that code-level validation and evals can operate per field. Fields the letter does not contain must be null with confidence 0, never guessed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["document", "insurer", "member", "provider", "service", "denial", "appeal", "extraction_meta"],
+
+  "$defs": {
+    "evidence": {
+      "type": "array",
+      "description": "Verbatim quotes from the letter that support the value. Empty only when value is null.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["quote", "page"],
+        "properties": {
+          "quote": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "page": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "confidence": {
+      "type": "number", "minimum": 0, "maximum": 1,
+      "description": "Model confidence that value is correct. 0 when value is null."
+    },
+    "str_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "confidence", "evidence"],
+      "properties": {
+        "value": { "type": ["string", "null"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "date_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "confidence", "evidence"],
+      "properties": {
+        "value": { "type": ["string", "null"], "format": "date", "description": "ISO 8601 date (YYYY-MM-DD)." },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "int_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "confidence", "evidence"],
+      "properties": {
+        "value": { "type": ["integer", "null"], "minimum": 0 },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "money_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "confidence", "evidence"],
+      "properties": {
+        "value": { "type": ["number", "null"], "minimum": 0, "description": "USD, no currency symbol." },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "bool_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "confidence", "evidence"],
+      "properties": {
+        "value": { "type": ["boolean", "null"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "str_list_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "confidence", "evidence"],
+      "properties": {
+        "value": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "enum_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "confidence", "evidence"],
+      "properties": {
+        "value": { "type": ["string", "null"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    }
+  },
+
+  "properties": {
+
+    "document": {
+      "type": "object", "additionalProperties": false,
+      "required": ["document_type", "letter_date", "page_count", "language"],
+      "properties": {
+        "document_type": {
+          "allOf": [{ "$ref": "#/$defs/enum_field" }],
+          "properties": { "value": { "enum": [
+            "denial_letter",
+            "eob_with_denial",
+            "prior_auth_denial",
+            "appeal_decision",
+            "not_a_denial",
+            "unknown", null
+          ] } },
+          "description": "Routing gate. Only denial_letter and prior_auth_denial proceed in MVP. eob_with_denial gets a message asking the user to obtain the denial letter itself. appeal_decision means the user is already past level 1."
+        },
+        "letter_date": { "$ref": "#/$defs/date_field", "description": "Date printed on the letter. Anchor for most deadline calculations." },
+        "page_count": { "type": "integer", "minimum": 1 },
+        "language": { "type": "string", "description": "BCP-47, e.g. en, es." }
+      }
+    },
+
+    "insurer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "plan_name", "plan_type", "coverage_type", "is_self_funded"],
+      "properties": {
+        "name": { "$ref": "#/$defs/str_field", "description": "Payer name as printed, e.g. Anthem Blue Cross." },
+        "plan_name": { "$ref": "#/$defs/str_field" },
+        "plan_type": {
+          "allOf": [{ "$ref": "#/$defs/enum_field" }],
+          "properties": { "value": { "enum": ["HMO", "PPO", "EPO", "POS", "HDHP", "other", "unknown", null] } }
+        },
+        "coverage_type": {
+          "allOf": [{ "$ref": "#/$defs/enum_field" }],
+          "properties": { "value": { "enum": [
+            "employer", "marketplace", "individual",
+            "medicare", "medicare_advantage", "medicaid", "tricare", "va",
+            "unknown", null
+          ] } },
+          "description": "Routing gate. medicare, medicare_advantage, medicaid, tricare, va are out of scope for MVP."
+        },
+        "is_self_funded": {
+          "$ref": "#/$defs/bool_field",
+          "description": "True if the letter indicates an employer self-funded (ERISA) plan, e.g. administered by, ASO, your employer plan. Affects which appeal rules apply. null if not determinable from the letter."
+        }
+      }
+    },
+
+    "member": {
+      "type": "object", "additionalProperties": false,
+      "required": ["member_name", "patient_name", "member_id", "group_number", "claim_number", "reference_number"],
+      "description": "PII. Used only to populate the appeal letter. Never logged, never retained past session unless user opts in.",
+      "properties": {
+        "member_name": { "$ref": "#/$defs/str_field" },
+        "patient_name": { "$ref": "#/$defs/str_field", "description": "May differ from member (dependent). null if same or absent." },
+        "member_id": { "$ref": "#/$defs/str_field" },
+        "group_number": { "$ref": "#/$defs/str_field" },
+        "claim_number": { "$ref": "#/$defs/str_field" },
+        "reference_number": { "$ref": "#/$defs/str_field", "description": "Case, authorization, or reference number if distinct from claim number." }
+      }
+    },
+
+    "provider": {
+      "type": "object", "additionalProperties": false,
+      "required": ["provider_name", "facility_name", "provider_network_status"],
+      "properties": {
+        "provider_name": { "$ref": "#/$defs/str_field" },
+        "facility_name": { "$ref": "#/$defs/str_field" },
+        "provider_network_status": {
+          "allOf": [{ "$ref": "#/$defs/enum_field" }],
+          "properties": { "value": { "enum": ["in_network", "out_of_network", "unknown", null] } }
+        }
+      }
+    },
+
+    "service": {
+      "type": "object", "additionalProperties": false,
+      "required": ["description", "procedure_codes", "diagnosis_codes", "drug_name", "date_of_service_start", "date_of_service_end", "amount_billed", "amount_denied", "is_partial_denial"],
+      "properties": {
+        "description": { "$ref": "#/$defs/str_field", "description": "What was denied, in the letter's own words." },
+        "procedure_codes": { "$ref": "#/$defs/str_list_field", "description": "CPT / HCPCS codes as printed." },
+        "diagnosis_codes": { "$ref": "#/$defs/str_list_field", "description": "ICD-10 codes as printed." },
+        "drug_name": { "$ref": "#/$defs/str_field", "description": "For pharmacy denials." },
+        "date_of_service_start": { "$ref": "#/$defs/date_field" },
+        "date_of_service_end": { "$ref": "#/$defs/date_field", "description": "null for a single-day service." },
+        "amount_billed": { "$ref": "#/$defs/money_field" },
+        "amount_denied": { "$ref": "#/$defs/money_field" },
+        "is_partial_denial": { "$ref": "#/$defs/bool_field", "description": "True if some of the claim was paid." }
+      }
+    },
+
+    "denial": {
+      "type": "object", "additionalProperties": false,
+      "required": ["timing", "reason_category", "reason_code", "reason_text", "criteria_cited", "reviewer_credentials", "is_final_internal_decision"],
+      "properties": {
+        "timing": {
+          "allOf": [{ "$ref": "#/$defs/enum_field" }],
+          "properties": { "value": { "enum": ["pre_service", "post_service", "concurrent", "unknown", null] } },
+          "description": "pre_service = denied before care (prior auth). post_service = claim denied after care. concurrent = ongoing care cut off. Determines deadlines and urgency."
+        },
+        "reason_category": {
+          "allOf": [{ "$ref": "#/$defs/enum_field" }],
+          "properties": { "value": { "enum": [
+            "not_medically_necessary",
+            "experimental_investigational",
+            "out_of_network",
+            "no_prior_authorization",
+            "not_a_covered_benefit",
+            "step_therapy_or_formulary",
+            "coding_or_billing_error",
+            "missing_information",
+            "timely_filing",
+            "eligibility_or_coordination_of_benefits",
+            "other", null
+          ] } },
+          "description": "Must match a playbook entry id in playbook/. other requires reason_text."
+        },
+        "reason_code": { "$ref": "#/$defs/str_field", "description": "Insurer's own code, e.g. CO-50, RSN 197, if printed." },
+        "reason_text": { "$ref": "#/$defs/str_field", "description": "The denial reason verbatim. Required. This is what the appeal must rebut." },
+        "criteria_cited": {
+          "$ref": "#/$defs/str_list_field",
+          "description": "Named policies, guidelines, or criteria the insurer says it applied, e.g. Medical Policy SURG.00023, InterQual, MCG. Empty if none, which is itself a finding: the insurer must disclose the criteria on request."
+        },
+        "reviewer_credentials": { "$ref": "#/$defs/str_field", "description": "Title or specialty of the reviewer if stated, e.g. Medical Director, Board Certified in Internal Medicine." },
+        "is_final_internal_decision": { "$ref": "#/$defs/bool_field", "description": "True if the letter says internal appeals are exhausted and only external review remains." }
+      }
+    },
+
+    "appeal": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "deadline_date", "deadline_days_stated", "deadline_anchor", "deadline_basis_text",
+        "internal_appeal_levels", "submission_address", "submission_fax", "submission_portal_url", "submission_phone",
+        "expedited_available", "expedited_criteria_text", "expedited_phone",
+        "external_review_available", "external_review_body", "external_review_deadline_text",
+        "right_to_request_file_stated"
+      ],
+      "properties": {
+        "deadline_date": {
+          "$ref": "#/$defs/date_field",
+          "description": "Explicit deadline date if printed. Do NOT compute here; computation happens in validation code from deadline_days_stated + deadline_anchor. If both are present, validation cross-checks them."
+        },
+        "deadline_days_stated": { "$ref": "#/$defs/int_field", "description": "e.g. 180 from within 180 days." },
+        "deadline_anchor": {
+          "allOf": [{ "$ref": "#/$defs/enum_field" }],
+          "properties": { "value": { "enum": ["letter_date", "date_received", "date_of_service", "date_of_eob", "unknown", null] } },
+          "description": "What the day count runs from, per the letter."
+        },
+        "deadline_basis_text": { "$ref": "#/$defs/str_field", "description": "Verbatim sentence stating the deadline. Always capture; this is shown to the user alongside the computed date." },
+        "internal_appeal_levels": { "$ref": "#/$defs/int_field", "description": "Number of internal appeal levels described (1 or 2 typically)." },
+        "submission_address": { "$ref": "#/$defs/str_field", "description": "Mailing address for appeals. Full, as printed." },
+        "submission_fax": { "$ref": "#/$defs/str_field" },
+        "submission_portal_url": { "$ref": "#/$defs/str_field" },
+        "submission_phone": { "$ref": "#/$defs/str_field", "description": "Appeals or member services number." },
+        "expedited_available": { "$ref": "#/$defs/bool_field" },
+        "expedited_criteria_text": { "$ref": "#/$defs/str_field", "description": "Verbatim description of when expedited or urgent appeal applies." },
+        "expedited_phone": { "$ref": "#/$defs/str_field" },
+        "external_review_available": { "$ref": "#/$defs/bool_field" },
+        "external_review_body": { "$ref": "#/$defs/str_field", "description": "e.g. California Department of Managed Health Care, independent review organization." },
+        "external_review_deadline_text": { "$ref": "#/$defs/str_field", "description": "Verbatim, e.g. within 4 months of this decision." },
+        "right_to_request_file_stated": { "$ref": "#/$defs/bool_field", "description": "True if the letter mentions the right to request the claim file or criteria free of charge." }
+      }
+    },
+
+    "extraction_meta": {
+      "type": "object", "additionalProperties": false,
+      "required": ["model", "prompt_version", "schema_version", "ocr_quality", "warnings"],
+      "properties": {
+        "model": { "type": "string" },
+        "prompt_version": { "type": "string" },
+        "schema_version": { "type": "string", "const": "0.1.0" },
+        "ocr_quality": { "type": "string", "enum": ["good", "degraded", "poor"], "description": "Model's read of legibility. poor triggers a re-upload prompt." },
+        "warnings": {
+          "type": "array", "items": { "type": "string" },
+          "description": "Free-text notes from the extractor, e.g. letter appears to be page 2 of 3, two different deadlines mentioned."
+        }
+      }
+    }
+  }
+}
