@@ -1,0 +1,247 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: step_therapy_or_formulary
+display_name: Step therapy or formulary
+version: 0.1.0
+
+aliases:
+  - "step therapy"
+  - "you must first try"
+  - "fail first"
+  - "requires a trial of"
+  - "not on the formulary"
+  - "non-formulary"
+  - "not on your plan's preferred drug list"
+  - "non-preferred"
+  - "a preferred alternative is available"
+  - "quantity limit"
+  - "exceeds the quantity limit"
+  - "dose exceeds plan limit"
+  - "requires prior authorization for this medication"
+  - "formulary exception"
+  - "tier exception"
+
+plain_english: >
+  Your insurer is saying they want you to use a different, usually cheaper,
+  medication first, or that the drug your doctor prescribed isn't on their
+  approved list, or that they'll only pay for a smaller amount than was
+  prescribed. Every plan has an exception process for exactly this. The
+  strongest reasons for an exception are that you already tried the
+  alternatives and they didn't work or caused side effects, that the
+  alternatives are unsafe for you specifically, or that you're already stable
+  on the prescribed drug and switching would set you back. Many states also
+  have laws that require plans to grant step-therapy exceptions in these
+  situations within a short time limit.
+
+insurer_obligations:
+  - id: exception_process
+    text: >
+      Plans must have a formulary exception process with a decision within 72
+      hours for standard requests and 24 hours for urgent ones. The letter
+      should tell you how to request one.
+    if_missing_argument: request_exception_process
+  - id: step_therapy_override
+    text: >
+      In many states, a plan must grant a step-therapy exception when the
+      required drug is contraindicated, was already tried and failed, is
+      expected to be ineffective, or the patient is stable on the current drug.
+      Check whether your state has such a law.
+    if_missing_argument: state_override
+  - id: criteria_disclosed
+    text: "You can request the clinical criteria used for the step-therapy or quantity-limit decision."
+    if_missing_argument: request_criteria
+
+clarifying_questions:
+  - id: alternatives_tried
+    question: "Have you already tried the drug(s) the insurer wants you to use first? If so, which ones, roughly when, and what happened?"
+    why_it_matters: "'Already tried it, it failed' is the single strongest step-therapy argument, and in many states the plan is required to accept it."
+    answer_type: free_text
+    unlocks: [already_failed]
+  - id: contraindication
+    question: "Has your doctor said the alternative would be unsafe for you, interact with another medication, or is likely not to work because of your specific situation?"
+    why_it_matters: "A contraindication or expected ineffectiveness is a mandatory exception ground in many states."
+    answer_type: yes_no
+    unlocks: [contraindicated]
+  - id: currently_stable
+    question: "Are you currently taking the prescribed drug and doing well on it (for example, it was covered under a previous plan or a sample)?"
+    why_it_matters: "Forcing a stable patient to switch is a recognised exception ground and a strong argument on its own."
+    answer_type: yes_no
+    unlocks: [stable_on_current]
+  - id: quantity_reason
+    question: "If this is a quantity or dose limit, did your doctor prescribe the higher amount for a specific reason?"
+    why_it_matters: "Quantity-limit exceptions are granted when the prescriber documents why the standard dose is insufficient."
+    answer_type: free_text
+    unlocks: [quantity_justified]
+  - id: urgency
+    question: "Would going without this drug, or switching to a different one, cause serious harm or a rapid worsening of your condition?"
+    why_it_matters: "This qualifies you for an expedited exception decision within 24 hours."
+    answer_type: yes_no
+    unlocks: [urgency_argument, expedited_request]
+
+arguments:
+  - id: already_failed
+    strength: strong
+    requires:
+      questions: { alternatives_tried: nonempty }
+      evidence: [medication_history]
+    claim: "The required step drugs were already tried and failed or caused intolerable side effects; the step has been satisfied."
+    template: >
+      I have already tried the alternatives the plan requires:
+      {alternatives_tried}. As the enclosed pharmacy and medical records show,
+      these were ineffective or caused adverse effects that required
+      discontinuation. The purpose of step therapy is to confirm that a
+      lower-cost option has been tried; that has occurred. Requiring me to
+      repeat a failed trial serves no clinical purpose and would delay effective
+      treatment.
+
+  - id: contraindicated
+    strength: strong
+    requires:
+      questions: { contraindication: true }
+      evidence: [prescriber_statement]
+    claim: "The required alternative is contraindicated or expected to be ineffective for this patient."
+    template: >
+      My prescriber, {provider.provider_name.value}, has determined that the
+      plan's preferred alternative is contraindicated for me, or is expected to
+      be ineffective, because {contraindication_reason}. The enclosed
+      statement documents this. A step-therapy requirement cannot reasonably
+      compel a patient to take a medication their physician has determined to
+      be unsafe or ineffective for them.
+
+  - id: stable_on_current
+    strength: strong
+    requires:
+      questions: { currently_stable: true }
+      evidence: [prescriber_statement]
+    claim: "The patient is stable on the prescribed drug; switching risks destabilising a controlled condition."
+    template: >
+      I am currently stable on {service.drug_name.value} and have been for
+      {stable_duration}. My prescriber's enclosed statement confirms that my
+      condition is controlled on this medication and that switching to a
+      different agent would risk loss of control, with the consequences
+      described. Continuity of an effective treatment is a recognised ground
+      for a formulary or step-therapy exception.
+
+  - id: state_override
+    strength: strong
+    requires:
+      questions: {}
+      evidence: []
+    claim: "State step-therapy law requires the exception to be granted on these grounds and within a set time."
+    template: >
+      Under {state_step_therapy_law}, a plan must grant a step-therapy
+      exception when the required drug has been tried and failed, is
+      contraindicated or expected to be ineffective, or the patient is stable
+      on the prescribed drug. One or more of those grounds applies here, as
+      documented. I request that the exception be granted within the timeframe
+      the law requires.
+
+  - id: quantity_justified
+    strength: medium
+    requires:
+      questions: { quantity_reason: nonempty }
+      evidence: [prescriber_statement]
+    claim: "The prescribed quantity or dose is clinically justified for this patient."
+    template: >
+      The prescribed quantity of {service.drug_name.value} exceeds the plan's
+      standard limit because {quantity_reason}. My prescriber's enclosed
+      statement explains why the standard quantity is insufficient for my
+      condition. I request a quantity-limit exception for the prescribed
+      amount.
+
+  - id: urgency_argument
+    strength: medium
+    requires:
+      questions: { urgency: true }
+      evidence: []
+    claim: "Interruption or switching would cause serious harm; the exception should be expedited."
+    template: >
+      Interrupting or switching this medication would {harm_of_delay}, as my
+      prescriber confirms. I request that this exception be reviewed on an
+      expedited basis, with a decision within 24 hours.
+
+  - id: request_criteria
+    strength: medium
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the clinical criteria used and the full list of drugs the plan considers acceptable alternatives."
+    template: >
+      I request a copy of the clinical criteria applied to this decision and
+      the complete list of formulary alternatives the plan considers
+      therapeutically equivalent for my diagnosis, so that my prescriber can
+      address each one.
+
+  - id: request_exception_process
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Treat this appeal as a formal formulary / step-therapy exception request."
+    template: >
+      Please treat this letter as a formal request for a formulary exception,
+      step-therapy exception, and/or quantity-limit exception, as applicable,
+      under the plan's exception process, in addition to an appeal of the
+      denial.
+
+evidence_checklist:
+  - id: prescriber_statement
+    item: "Statement from your prescriber supporting the exception (many insurers have a one-page form for this)"
+    who_provides: provider
+    required: true
+    how_to_get: >
+      Call the prescriber's office and say the insurer denied the drug and you
+      need a formulary or step-therapy exception. They do these constantly. Ask
+      them to include: drugs tried and outcomes, contraindications, current
+      stability, and why the prescribed dose is needed.
+  - id: medication_history
+    item: "Pharmacy printout or medical records showing which drugs you tried, when, and why you stopped"
+    who_provides: patient
+    required: true
+    how_to_get: "Your pharmacy can print a medication history. Your doctor's notes will document side effects and discontinuation."
+  - id: relevant_medical_records
+    item: "Records documenting your diagnosis and current status on the drug"
+    who_provides: provider
+    required: true
+    how_to_get: "Doctor's office or patient portal."
+  - id: prior_coverage_proof
+    item: "Proof a previous plan covered this drug (old EOBs or pharmacy receipts), if you're switching plans"
+    who_provides: patient
+    required: false
+    how_to_get: "Old EOBs or pharmacy records."
+  - id: state_law_citation
+    item: "Your state's step-therapy exception law, if one exists"
+    who_provides: patient
+    required: false
+    how_to_get: "Search '[your state] step therapy law'. Patient advocacy groups for your condition often keep a list."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "That this letter be treated as a formal formulary / step-therapy / quantity-limit exception request as well as an appeal"
+  - "The clinical criteria applied and the complete list of alternatives the plan considers equivalent"
+  - "A decision within the plan's required exception timeframe (72 hours standard, 24 hours expedited)"
+
+escalation:
+  expedited_if: >
+    Going without the drug or switching could seriously harm you. Say the word
+    "expedited" or "urgent" when you call, and have the prescriber call too.
+    Expedited exception decisions are due within 24 hours.
+  external_review_note: >
+    Formulary exception denials are eligible for external review, and the
+    review is fast (72 hours standard, 24 hours expedited). If your state has a
+    step-therapy law and the plan ignored it, the state insurance department
+    is the enforcement route.
+
+pitfalls:
+  - "Appealing without the prescriber's statement. The exception decision is made almost entirely on what the prescriber says."
+  - "Being vague about what was tried. Names, dates, and what happened. 'Didn't work' is weaker than 'no improvement after 8 weeks at maximum dose, discontinued for nausea'."
+  - "Letting the prescription lapse during the appeal. Ask the prescriber about samples, a short bridge supply, or a temporary alternative, and ask the plan for a transition fill if you are new to the plan."
+  - "Missing that a new plan year or new plan often triggers a 'transition fill' right: a one-time supply while the exception is processed."
+
+weak_case_signals:
+  - "The prescriber is willing to switch to the preferred alternative. Then switching is faster than appealing."
+  - "The drug is excluded from the formulary entirely for a non-clinical reason (for example, a lifestyle drug) and no state mandate applies."

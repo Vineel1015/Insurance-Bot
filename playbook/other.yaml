@@ -1,0 +1,222 @@
+# Generic fallback. Used when the classifier returns `other` or confidence is
+# too low to pick a category (VALIDATION.md rule C2). It asks one extra
+# question to try to route into a specific playbook before falling back to the
+# universal arguments. Legal/regulatory statements are starting points to verify.
+
+id: other
+display_name: Other or unclear reason
+version: 0.1.0
+
+aliases:
+  - "denied"
+  - "not payable"
+  - "adverse benefit determination"
+  - "we are unable to approve"
+  - "does not qualify for benefits"
+  - "benefit determination"
+  - "see explanation of benefits"
+  - "refer to remark code"
+
+plain_english: >
+  We couldn't confidently match the reason in this letter to one of the common
+  denial types. That happens when a letter is vague, uses an unusual code, or
+  combines several reasons. It doesn't mean the appeal is weaker. Every denial
+  has to be explained, and you have the right to ask exactly what rule was
+  applied, see everything the insurer looked at, and have a qualified person
+  review it. The first step is to pin down the real reason, either from the
+  letter's wording below or with one phone call; once we know it, a more
+  specific set of arguments applies.
+
+insurer_obligations:
+  - id: specific_reason_required
+    text: >
+      A denial must state the specific reason and reference the plan
+      provision or clinical criteria it relies on. A vague denial does not
+      meet that requirement.
+    if_missing_argument: demand_specific_reason
+  - id: criteria_disclosed
+    text: "You can request the specific rule, guideline, or plan provision used, free of charge."
+    if_missing_argument: request_criteria
+  - id: file_available
+    text: "You are entitled to a free copy of the full claim file."
+    if_missing_argument: request_file
+  - id: qualified_reviewer
+    text: "If any medical judgement was involved, the reviewer should be appropriately qualified and identified."
+    if_missing_argument: request_reviewer
+
+clarifying_questions:
+  - id: reason_in_own_words
+    question: "In your own words, why does the letter say the claim was denied? Copy the sentence if you can find it."
+    why_it_matters: "This is our best chance to route you to the right set of arguments. Even a partial phrase helps."
+    answer_type: free_text
+    unlocks: [route_to_category]
+  - id: called_insurer
+    question: "Have you called the number on the letter to ask what the denial reason means? What did they say?"
+    why_it_matters: "The rep can usually read the internal reason code, which is often much more specific than the letter."
+    answer_type: free_text
+    unlocks: [route_to_category]
+  - id: care_nature
+    question: "What was the care for, and did your doctor consider it necessary?"
+    why_it_matters: "If a medical judgement is anywhere in this denial, the doctor's support is the strongest thing you can add."
+    answer_type: free_text
+    unlocks: [physician_support]
+  - id: still_need_care
+    question: "Is this about care you still need, or care you already received?"
+    why_it_matters: "Care you still need may qualify for an expedited appeal; care already received is about payment."
+    answer_type: choice
+    choices: ["Still need it", "Already received it"]
+    unlocks: [expedited_request]
+  - id: reason_type_guess
+    question: "Does any of these sound like what the letter is saying?"
+    why_it_matters: "Picking one routes you to the specific playbook, which has much stronger arguments than the generic ones."
+    answer_type: choice
+    choices:
+      - "They don't think the care was needed or proven"
+      - "The doctor or hospital wasn't in their network, or didn't get approval first"
+      - "The plan doesn't cover this kind of service or drug"
+      - "Something about paperwork, codes, dates, or my enrolment"
+    unlocks: [route_to_category]
+
+arguments:
+  - id: route_to_category
+    strength: strong
+    requires:
+      questions: { reason_type_guess: nonempty }
+      evidence: []
+    claim: "Re-run classification with the user's answers and switch to the matched playbook. This argument emits no letter text; it is a control step."
+    template: ""
+
+  - id: demand_specific_reason
+    strength: strong
+    requires:
+      questions: {}
+      evidence: []
+    claim: "The denial does not state a specific reason or the provision relied on, which it must; request it and reserve the right to supplement the appeal."
+    template: >
+      Your letter dated {document.letter_date.value} denies coverage for
+      {service.description.value} but does not state the specific reason for
+      the denial, the plan provision relied upon, or the clinical criteria
+      applied, beyond the statement "{denial.reason_text.value}". A denial must
+      set out the specific reason and the basis for it. I request that
+      information in writing, and I reserve the right to supplement this
+      appeal once it is provided. In the meantime, I am appealing on the
+      grounds below.
+
+  - id: physician_support
+    strength: strong
+    requires:
+      questions: { care_nature: nonempty }
+      evidence: [letter_of_medical_necessity]
+    claim: "The treating physician supports the care as necessary and appropriate."
+    template: >
+      My treating physician, {provider.provider_name.value}, has determined
+      that {service.description.value} is necessary and appropriate for my
+      condition, {diagnosis_plain}, for the reasons in the enclosed letter. To
+      the extent the denial rests on any judgement about the appropriateness
+      of this care, that judgement should give weight to the physician who
+      examined and treated me.
+
+  - id: facts_restated
+    strength: medium
+    requires:
+      questions: {}
+      evidence: [relevant_medical_records]
+    claim: "State the facts of the service plainly, with records, so that the appeal reviewer decides on a complete picture."
+    template: >
+      For the record: on {service.date_of_service_start.value} I received
+      {service.description.value} from {provider.provider_name.value} for
+      {diagnosis_plain}. The enclosed records document the condition, the
+      service, and the reasons for it. I ask that the appeal be decided on this
+      complete record.
+
+  - id: request_criteria
+    strength: medium
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the rule, guideline, or plan provision applied."
+    template: >
+      I request a copy, free of charge, of any internal rule, guideline,
+      protocol, clinical criterion, or plan provision relied upon in making
+      this determination.
+
+  - id: request_reviewer
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the identity and qualifications of the reviewer, and an independent review on appeal."
+    template: >
+      I request the name and professional qualifications of any individual
+      whose judgement was relied on in this decision, and that this appeal be
+      reviewed by an appropriately qualified individual who was not involved
+      in the original determination.
+
+  - id: request_file
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the full claim file."
+    template: >
+      I request a complete copy of the claim file, including all documents,
+      records, correspondence, and internal notes considered in making this
+      decision, free of charge.
+
+evidence_checklist:
+  - id: letter_of_medical_necessity
+    item: "Letter from your doctor supporting the care"
+    who_provides: provider
+    required: false
+    how_to_get: "Ask the treating doctor. Even for a paperwork denial, it doesn't hurt."
+  - id: relevant_medical_records
+    item: "Records documenting the condition and the service"
+    who_provides: provider
+    required: true
+    how_to_get: "Doctor's office or patient portal."
+  - id: call_notes
+    item: "Notes from your call to the insurer: date, rep name, reference number, and what they said the reason was"
+    who_provides: patient
+    required: false
+    how_to_get: "Write them down during or right after the call."
+  - id: plan_document
+    item: "Your plan document (SPD / Evidence of Coverage)"
+    who_provides: patient
+    required: false
+    how_to_get: "HR or benefits portal for employer plans; the insurer's member portal otherwise."
+  - id: itemised_bill
+    item: "Itemised bill from the provider"
+    who_provides: provider
+    required: false
+    how_to_get: "Provider's billing office."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "The specific reason for the denial and the plan provision or clinical criteria relied upon"
+  - "A complete copy of the claim file"
+  - "The identity and qualifications of the reviewer"
+  - "Review of this appeal by a qualified individual not involved in the original decision"
+  - "Acknowledgement that I may supplement this appeal once the specific reason is provided"
+
+escalation:
+  expedited_if: >
+    This concerns care you still need and delay could seriously harm you. Ask
+    for an expedited appeal.
+  external_review_note: >
+    Whether external review is available depends on the real reason. Once it's
+    identified, the matching playbook's guidance applies. If the plan never
+    gives a specific reason, that itself is a complaint to the state insurance
+    department or, for self-funded employer plans, the Department of Labor.
+
+pitfalls:
+  - "Sending a generic appeal when one phone call would have revealed a specific, fixable reason."
+  - "Guessing the reason and arguing against the wrong one. If unsure, demand the specific reason first and say you'll supplement."
+  - "Missing that the letter is not actually a denial (for example, a request for information or an EOB with a note). Read it again with the routing questions above."
+
+weak_case_signals:
+  - "The letter is not a denial at all."
+  - "After the call, the reason turns out to be a plan exclusion that clearly applies."

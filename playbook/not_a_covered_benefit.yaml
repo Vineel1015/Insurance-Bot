@@ -1,0 +1,245 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: not_a_covered_benefit
+display_name: Not a covered benefit
+version: 0.1.0
+
+aliases:
+  - "not a covered benefit"
+  - "not a covered service"
+  - "excluded under your plan"
+  - "this service is excluded"
+  - "benefit exclusion"
+  - "plan exclusion"
+  - "your plan does not cover"
+  - "not covered under your benefit plan"
+  - "benefit maximum has been reached"
+  - "annual limit exceeded"
+  - "visit limit exceeded"
+  - "cosmetic"
+  - "custodial care"
+  - "not covered for this diagnosis"
+
+plain_english: >
+  Your insurer is saying your plan simply doesn't include this kind of
+  service, no matter how necessary it is. This is a contract question: what
+  does your plan document actually say? These denials are worth checking
+  carefully, because insurers sometimes apply an exclusion too broadly, label
+  a reconstructive or medical procedure as "cosmetic", or miss that a state or
+  federal law requires the benefit to be covered. The plan's own document is
+  the evidence, so the first step is getting it.
+
+insurer_obligations:
+  - id: exclusion_cited
+    text: >
+      The letter should quote or reference the specific plan provision that
+      excludes the service. If it just says "not covered", ask for the exact
+      language and page.
+    if_missing_argument: request_plan_provision
+  - id: plan_document_available
+    text: >
+      You are entitled to a copy of your plan document (Summary Plan
+      Description, Evidence of Coverage, or Certificate of Coverage) free of
+      charge.
+    if_missing_argument: request_plan_document
+  - id: mandated_benefits
+    text: >
+      Federal law (essential health benefits, mental health parity, women's
+      health, preventive services) and many state laws require certain
+      benefits regardless of what the plan says. An exclusion that conflicts
+      with those laws is not enforceable.
+    if_missing_argument: mandated_benefit
+
+clarifying_questions:
+  - id: have_plan_document
+    question: "Do you have your plan's full benefit document (often called Summary Plan Description, Evidence of Coverage, or Certificate of Coverage), not just the summary card?"
+    why_it_matters: "The exclusion has to be in there. If it isn't, or it's narrower than the insurer claims, that's the appeal."
+    answer_type: yes_no
+    unlocks: [exclusion_misapplied]
+  - id: exclusion_text
+    question: "If the letter quotes a specific exclusion, what does it say?"
+    why_it_matters: "We compare the exact exclusion language to what you actually received."
+    answer_type: free_text
+    unlocks: [exclusion_misapplied]
+  - id: service_purpose
+    question: "What was the treatment for? In particular, was it to fix a medical problem, restore function, or treat pain, rather than to change appearance?"
+    why_it_matters: "'Cosmetic' and similar exclusions almost always have an exception for reconstructive or functional treatment."
+    answer_type: free_text
+    unlocks: [reconstructive_not_cosmetic]
+  - id: condition_category
+    question: "Does this relate to any of the following: mental health or substance use, pregnancy or maternity, a birth defect, cancer or reconstruction after cancer, preventive care, or a condition your state specifically requires plans to cover (for example autism, diabetes supplies, fertility)?"
+    why_it_matters: "Federal and state laws mandate coverage for many of these regardless of plan exclusions."
+    answer_type: free_text
+    unlocks: [mandated_benefit, parity]
+  - id: limit_type
+    question: "If the denial says you hit a limit (number of visits, dollar amount, days), what limit does it name?"
+    why_it_matters: "Annual and lifetime dollar limits on essential health benefits are prohibited, and visit limits on mental health must match those on medical care."
+    answer_type: free_text
+    unlocks: [limit_not_permitted]
+
+arguments:
+  - id: exclusion_misapplied
+    strength: strong
+    requires:
+      questions: { have_plan_document: true }
+      evidence: [plan_document]
+    claim: "The plan document's exclusion, read as written, does not cover the service actually received."
+    template: >
+      The denial relies on the plan's exclusion for {exclusion_text}. The
+      service I received was {service.description.value}, provided for
+      {diagnosis_plain}. Reading the exclusion as written, it does not apply:
+      {why_exclusion_does_not_fit}. Exclusions are to be read narrowly and
+      ambiguities resolved in favour of coverage. The service falls within the
+      plan's covered benefit for {covered_category}, at page {plan_page_ref} of
+      the plan document.
+
+  - id: reconstructive_not_cosmetic
+    strength: strong
+    requires:
+      questions: { service_purpose: nonempty }
+      evidence: [letter_of_medical_necessity]
+    claim: "The service was reconstructive or functional, not cosmetic, and falls under the exception to the cosmetic exclusion."
+    template: >
+      The service was not cosmetic. It was performed to {service_purpose},
+      as documented by {provider.provider_name.value} in the enclosed letter.
+      The plan's cosmetic exclusion applies to procedures performed solely to
+      improve appearance; it does not apply to procedures that treat a medical
+      condition, restore function, relieve pain, or correct the effects of
+      injury, disease, or congenital anomaly. This service falls squarely
+      within that exception.
+
+  - id: mandated_benefit
+    strength: strong
+    requires:
+      questions: { condition_category: nonempty }
+      evidence: []
+    claim: "Federal or state law requires coverage of this benefit; a plan exclusion cannot override it."
+    template: >
+      The service relates to {condition_category}. Coverage of this benefit is
+      required by {applicable_mandate}. A plan may not exclude a benefit that
+      applicable law requires it to cover, and the exclusion cited in the denial
+      is unenforceable to that extent. I ask that the claim be reprocessed as a
+      covered benefit.
+
+  - id: parity
+    strength: strong
+    requires:
+      questions: { condition_category: nonempty }
+      evidence: []
+    claim: "Mental health and substance use benefits must be covered on terms no more restrictive than medical benefits."
+    template: >
+      This service is treatment for a mental health or substance use condition.
+      Under the Mental Health Parity and Addiction Equity Act, the plan may not
+      impose exclusions, limits, or treatment restrictions on mental health
+      benefits that are more restrictive than those applied to comparable
+      medical and surgical benefits. I request the plan's comparative analysis
+      demonstrating that this exclusion complies with parity requirements, and
+      that the claim be reprocessed.
+
+  - id: limit_not_permitted
+    strength: medium
+    requires:
+      questions: { limit_type: nonempty }
+      evidence: []
+    claim: "The stated limit is not permitted on this category of benefit, or has been miscounted."
+    template: >
+      The denial states that a {limit_type} has been reached. Annual and
+      lifetime dollar limits are prohibited on essential health benefits, and
+      visit or day limits must be applied consistently and counted accurately.
+      I request an itemised accounting of how the limit was calculated for this
+      plan year, and reprocessing if the limit either does not lawfully apply
+      or has been miscounted.
+
+  - id: request_plan_provision
+    strength: medium
+    requires:
+      questions: {}
+      evidence: []
+    claim: "The letter does not identify the specific plan provision; request it."
+    template: >
+      The denial does not identify the specific plan provision on which the
+      exclusion is based. I request the exact language of the provision relied
+      upon and its location in the plan document, so that I can respond to it
+      directly.
+
+  - id: request_plan_document
+    strength: weak
+    requires:
+      questions: { have_plan_document: false }
+      evidence: []
+    claim: "Request the full plan document."
+    template: >
+      I request a complete copy of the plan document governing my coverage
+      (the Summary Plan Description or Evidence of Coverage and any amendments
+      in effect on {service.date_of_service_start.value}), free of charge.
+
+  - id: request_file
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the full claim file."
+    template: >
+      I request a complete copy of the claim file, including all documents
+      considered in making this decision, free of charge.
+
+evidence_checklist:
+  - id: plan_document
+    item: "Your full plan document (SPD / Evidence of Coverage / Certificate of Coverage), with the relevant covered-benefit and exclusion pages flagged"
+    who_provides: patient
+    required: true
+    how_to_get: "Employer plan: ask HR or the benefits portal. Marketplace or individual plan: log in to the insurer's member portal, or call and ask them to mail it. It's often 100+ pages; search it for the service name."
+  - id: letter_of_medical_necessity
+    item: "Letter from your doctor explaining the medical purpose of the service"
+    who_provides: provider
+    required: true
+    how_to_get: "Ask the treating doctor. For cosmetic-type denials, the letter should describe the functional problem, pain, or condition being treated, with photos if relevant."
+  - id: relevant_medical_records
+    item: "Records documenting the condition and the reason for the service"
+    who_provides: provider
+    required: true
+    how_to_get: "Doctor's office or patient portal."
+  - id: mandate_citation
+    item: "The law or regulation requiring the benefit, if one applies"
+    who_provides: patient
+    required: false
+    how_to_get: "Your state insurance department website lists mandated benefits. Patient advocacy groups for your condition usually have a page on this."
+  - id: limit_accounting
+    item: "Your own count of visits or dollars used this plan year, from EOBs"
+    who_provides: patient
+    required: false
+    how_to_get: "Add up the EOBs in your member portal for this plan year."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "The exact plan language relied upon and its location in the plan document"
+  - "A complete copy of the plan document in effect on the date of service"
+  - "A complete copy of the claim file"
+  - "For mental health services: the plan's parity comparative analysis for this exclusion or limit"
+
+escalation:
+  expedited_if: >
+    The denial is stopping ongoing treatment for a serious condition. Ask for
+    an expedited appeal.
+  external_review_note: >
+    Pure contract exclusions (the plan just doesn't cover it) often don't
+    qualify for external review because there's no medical judgement to
+    review. But if the insurer's position depends on a medical judgement, such
+    as calling a procedure cosmetic, external review is available. For mandated
+    benefits and parity violations, complain to your state insurance
+    department (fully insured plans) or the U.S. Department of Labor
+    (self-funded employer plans); these regulators actively enforce those rules.
+
+pitfalls:
+  - "Arguing medical necessity when the plan genuinely excludes the service. Necessity doesn't overcome a valid exclusion; the argument has to be that the exclusion doesn't apply, or isn't lawful."
+  - "Trusting the summary of benefits. The Summary of Benefits and Coverage is a short overview; the exclusion (or its exception) is in the full plan document."
+  - "Accepting 'cosmetic' at face value. Reconstructive, functional, and congenital exceptions are nearly universal."
+  - "Missing the plan year. Benefits and exclusions can change on renewal; use the document in effect on the date of service."
+
+weak_case_signals:
+  - "The plan document clearly and specifically excludes the exact service, no mandate applies, and the purpose is genuinely elective."
+  - "The limit is a visit limit applied equally to medical and mental health, counted correctly, and the plan is not subject to essential-health-benefit rules (for example some grandfathered or short-term plans)."

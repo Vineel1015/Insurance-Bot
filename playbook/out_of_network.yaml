@@ -1,0 +1,248 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: out_of_network
+display_name: Out of network
+version: 0.1.0
+
+aliases:
+  - "out of network"
+  - "out-of-network"
+  - "non-participating provider"
+  - "non-network provider"
+  - "provider is not contracted"
+  - "not a participating provider"
+  - "services from a non-preferred provider"
+  - "your plan does not cover services outside the network"
+  - "no out-of-network benefits"
+  - "reduced benefit level for out-of-network services"
+
+plain_english: >
+  Your insurer is saying the doctor or facility you used is not in their
+  network, so they are either paying nothing or paying much less than they
+  would for an in-network provider. This is often not about your care at all;
+  it's about contracts. There are several situations where the insurer has to
+  pay in-network rates anyway: emergencies, care at an in-network hospital from
+  a doctor you didn't choose, cases where no in-network provider was actually
+  available, and cases where the insurer's own directory listed the provider as
+  in-network.
+
+insurer_obligations:
+  - id: network_adequacy
+    text: >
+      Plans must maintain enough in-network providers within a reasonable
+      distance and wait time. If they couldn't offer you one, they generally
+      must cover an out-of-network provider at the in-network rate.
+    if_missing_argument: network_inadequate
+  - id: directory_accuracy
+    text: >
+      If the insurer's own directory listed the provider as in-network when you
+      chose them, you are generally entitled to in-network cost-sharing.
+    if_missing_argument: directory_error
+  - id: surprise_billing_protection
+    text: >
+      Under the federal No Surprises Act, emergency care and most out-of-network
+      care received at an in-network facility must be covered at in-network
+      cost-sharing, and the provider cannot balance-bill you.
+    if_missing_argument: no_surprises_act
+
+clarifying_questions:
+  - id: situation
+    question: "Which of these best describes how you ended up with this provider?"
+    why_it_matters: "The right argument depends entirely on this. Each situation has a different rule in your favour."
+    answer_type: choice
+    choices:
+      - "It was an emergency"
+      - "I was at an in-network hospital or facility and this provider treated me there"
+      - "There was no in-network provider who could treat my condition, or none within a reasonable distance / wait"
+      - "The insurer's directory or a rep told me this provider was in network"
+      - "I was already being treated by this provider before my plan or their network changed"
+      - "I chose this provider knowing they were out of network"
+    unlocks: [emergency, no_surprises_act, network_inadequate, directory_error, continuity_of_care]
+  - id: sought_in_network
+    question: "Did you try to find an in-network provider first? If so, what happened?"
+    why_it_matters: "Showing you looked and couldn't find one (or the wait was months) makes the network-adequacy argument concrete."
+    answer_type: free_text
+    unlocks: [network_inadequate]
+  - id: directory_evidence
+    question: "Do you have a screenshot, printout, or a record of the call where the provider was shown or described as in network?"
+    why_it_matters: "Directory-error appeals are strong with proof and weak without it. Even the date you checked helps."
+    answer_type: yes_no
+    unlocks: [directory_error]
+  - id: gap_exception_requested
+    question: "Did anyone (you or the provider's office) ask the insurer in advance for a 'network gap exception' or 'single-case agreement'?"
+    why_it_matters: "If it was requested and refused, or never answered, that strengthens the appeal. If not, we'll ask for one retroactively."
+    answer_type: choice
+    choices: ["Yes, and it was approved", "Yes, and it was denied or ignored", "No", "Not sure"]
+    unlocks: [retroactive_gap_exception]
+  - id: mid_treatment
+    question: "Were you in the middle of ongoing treatment (for example a course of chemotherapy, pregnancy, or post-surgery care) when the provider left the network or your plan changed?"
+    why_it_matters: "Continuity-of-care rules usually require the plan to keep covering an ongoing course of treatment for a transition period."
+    answer_type: yes_no
+    unlocks: [continuity_of_care]
+
+arguments:
+  - id: emergency
+    strength: strong
+    requires:
+      questions: { situation: "It was an emergency" }
+      evidence: []
+    claim: "Emergency services must be covered at the in-network level regardless of the provider's network status."
+    template: >
+      The services in question were emergency services. I sought care for
+      {emergency_symptoms} at {provider.facility_name.value} on
+      {service.date_of_service_start.value}. Under federal law and the terms of
+      most plans, emergency care must be covered without prior authorization
+      and at the in-network benefit level regardless of whether the provider
+      participates in the network. The prudent-layperson standard applies: a
+      reasonable person with my symptoms would have believed emergency care
+      was needed.
+
+  - id: no_surprises_act
+    strength: strong
+    requires:
+      questions: { situation: "I was at an in-network hospital or facility and this provider treated me there" }
+      evidence: []
+    claim: "Out-of-network care received at an in-network facility is protected by the No Surprises Act and must be covered at in-network cost-sharing."
+    template: >
+      I received care at {provider.facility_name.value}, which is in my plan's
+      network. {provider.provider_name.value} treated me there as part of that
+      care; I did not select this provider and was not given a meaningful
+      opportunity to choose an in-network alternative. Under the No Surprises
+      Act, such services must be covered at the in-network cost-sharing level,
+      and any dispute over payment is between the plan and the provider, not
+      with me. I ask that the claim be reprocessed accordingly.
+
+  - id: network_inadequate
+    strength: strong
+    requires:
+      questions: { situation: "There was no in-network provider who could treat my condition, or none within a reasonable distance / wait" }
+      evidence: [in_network_search_evidence]
+    claim: "No in-network provider was available within a reasonable distance and time, so the plan must cover the out-of-network provider at in-network rates."
+    template: >
+      No in-network provider was available to treat my condition within a
+      reasonable distance or timeframe. {sought_in_network}. When a plan cannot
+      provide access to an in-network provider with the needed expertise, it is
+      required to cover services from an out-of-network provider at the
+      in-network benefit level. I request that this claim be processed as
+      in-network under the plan's network adequacy obligations, and that a
+      network gap exception be applied retroactively.
+
+  - id: directory_error
+    strength: strong
+    requires:
+      questions: { situation: "The insurer's directory or a rep told me this provider was in network", directory_evidence: true }
+      evidence: [directory_evidence_doc]
+    claim: "The plan's own directory or representative said the provider was in network; the member relied on it and is entitled to in-network cost-sharing."
+    template: >
+      Before receiving care, I confirmed through {directory_source} on
+      {directory_check_date} that {provider.provider_name.value} was in my
+      plan's network. I relied on that information in good faith. Plans are
+      responsible for the accuracy of their provider directories, and a member
+      who relies on an inaccurate listing is entitled to in-network cost-sharing
+      for the services received. The enclosed {directory_evidence_description}
+      documents what I was told.
+
+  - id: continuity_of_care
+    strength: medium
+    requires:
+      questions: { mid_treatment: true }
+      evidence: []
+    claim: "An ongoing course of treatment must be covered for a transition period when the provider leaves the network or the plan changes."
+    template: >
+      I was in the middle of an active course of treatment for
+      {diagnosis_plain} with {provider.provider_name.value} when
+      {network_change_event}. Continuity-of-care protections require the plan
+      to continue covering that treatment at the in-network level for a
+      transition period so that care is not interrupted. I request that the
+      services on {service.date_of_service_start.value} be covered under those
+      provisions.
+
+  - id: retroactive_gap_exception
+    strength: medium
+    requires:
+      questions: { gap_exception_requested: ["Yes, and it was denied or ignored", "No", "Not sure"] }
+      evidence: []
+    claim: "Request a network gap exception (single-case agreement) retroactively covering this care."
+    template: >
+      I request a network gap exception, or single-case agreement, covering the
+      services from {provider.provider_name.value} at the in-network benefit
+      level, applied retroactively to {service.date_of_service_start.value}.
+      The clinical need for this specific provider is explained in the enclosed
+      physician letter.
+
+  - id: request_file
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the claim file and the plan's network adequacy standards."
+    template: >
+      I request a complete copy of the claim file and a copy of the plan's
+      network adequacy standards (distance and wait-time requirements) for the
+      specialty involved, free of charge.
+
+evidence_checklist:
+  - id: in_network_search_evidence
+    item: "Proof you looked for an in-network provider: directory searches, call logs, names of providers who declined or had long waits"
+    who_provides: patient
+    required: false
+    how_to_get: "Write down every provider you contacted, the date, and what they said. Screenshot directory search results showing no results or great distances."
+  - id: directory_evidence_doc
+    item: "Screenshot or printout of the directory listing, or a note of the call (date, time, rep name, reference number)"
+    who_provides: patient
+    required: false
+    how_to_get: "Check your browser history for the directory page; call member services and ask for the call log from the date you checked."
+  - id: physician_letter_specific_provider
+    item: "Letter from your doctor explaining why this specific provider was needed"
+    who_provides: provider
+    required: false
+    how_to_get: "Ask the referring or treating doctor. This matters most for the network-adequacy and gap-exception arguments."
+  - id: emergency_records
+    item: "Emergency department records showing symptoms and time of arrival"
+    who_provides: provider
+    required: false
+    how_to_get: "Request from the hospital's medical records department."
+  - id: facility_network_proof
+    item: "Proof the facility itself was in network (directory listing or prior EOB showing in-network processing)"
+    who_provides: patient
+    required: false
+    how_to_get: "Look for an EOB from the same visit where the facility charge was paid at the in-network level."
+  - id: itemised_bill
+    item: "Itemised bill from the provider"
+    who_provides: provider
+    required: true
+    how_to_get: "Ask the provider's billing office."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter or EOB showing the out-of-network processing"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "A complete copy of the claim file"
+  - "The plan's network adequacy standards for this specialty and region"
+  - "Written confirmation of the provider's network status on the date of service and the date I checked the directory"
+  - "Reprocessing of the claim at the in-network benefit level"
+
+escalation:
+  expedited_if: >
+    You are currently receiving ongoing care from this provider and the denial
+    means treatment will stop. Ask for an expedited appeal and a continuity-of-care
+    determination.
+  external_review_note: >
+    Network-status denials are eligible for external review when they involve
+    a medical judgement (whether an in-network provider could have treated
+    you). If the dispute is purely about the contract, your state insurance
+    department or, for employer self-funded plans, the U.S. Department of Labor
+    is the complaint route. No Surprises Act violations can be reported to the
+    federal No Surprises Help Desk.
+
+pitfalls:
+  - "Paying the provider's balance bill before the appeal is decided. If the No Surprises Act applies, you may not owe it at all."
+  - "Arguing quality ('this doctor is the best') instead of availability ('no in-network doctor could do this within a reasonable time'). Availability is what the rules protect."
+  - "Losing the directory screenshot. Take it now if you haven't."
+  - "Treating a reduced payment as a full denial. Check whether the plan has any out-of-network benefit; the appeal may be about the rate, not coverage."
+
+weak_case_signals:
+  - "You knowingly chose an out-of-network provider for a non-emergency, an in-network alternative was available, and the plan has no out-of-network benefit (HMO / EPO). The appeal becomes a request for a courtesy exception."
+  - "The plan is an HMO or EPO and the situation is none of the protected ones above."

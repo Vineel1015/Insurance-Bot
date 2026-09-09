@@ -1,0 +1,209 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: timely_filing
+display_name: Timely filing
+version: 0.1.0
+
+aliases:
+  - "timely filing"
+  - "claim was not submitted within the filing limit"
+  - "the time limit for filing has expired"
+  - "claim received after the filing deadline"
+  - "exceeds the timely filing limit"
+  - "claim not filed within"
+  - "untimely"
+  - "late claim"
+  - "filing limit exceeded"
+
+plain_english: >
+  Your insurer is saying the claim was sent to them too late. Every plan has a
+  window after the date of service for a claim to be submitted (often 90 days
+  to a year). In almost all cases the provider, not you, is responsible for
+  sending the claim, and if the provider is in your plan's network, their
+  contract usually says they cannot bill you when they miss the deadline. So
+  the most important question is not "can I appeal?" but "who is on the hook?"
+  There are also good reasons a late claim should be accepted: the claim was
+  actually sent on time and lost, it went to the wrong insurer first, or your
+  coverage information wasn't available in time.
+
+insurer_obligations:
+  - id: filing_limit_stated
+    text: >
+      The plan document states the filing limit. The denial should reference
+      it, and the date the plan says it received the claim.
+    if_missing_argument: request_receipt_date
+  - id: provider_hold_harmless
+    text: >
+      In-network provider contracts nearly always say the provider absorbs
+      claims denied for their own late filing. You should not be billed.
+    if_missing_argument: member_not_liable
+  - id: good_cause_exception
+    text: >
+      Most plans accept late claims for good cause: proof of timely submission,
+      submission to another insurer first, or circumstances outside the
+      provider's control.
+    if_missing_argument: good_cause
+
+clarifying_questions:
+  - id: billing_and_network
+    question: "Is the provider billing you for the denied amount, and were they in your plan's network?"
+    why_it_matters: "In-network providers are usually barred from billing you for their own late filing. If you're not being billed at all, there may be nothing to appeal."
+    answer_type: choice
+    choices: ["Yes, and they're in network", "Yes, and they're out of network", "No, I'm not being billed", "Not sure"]
+    unlocks: [member_not_liable]
+  - id: who_filed
+    question: "Who submitted the claim: the provider's office, or you (for example, an out-of-network reimbursement claim)?"
+    why_it_matters: "If you filed it yourself, your own reasons for the delay matter. If the provider filed it, the reasons are theirs to explain."
+    answer_type: choice
+    choices: ["The provider", "I did", "Not sure"]
+    unlocks: [good_cause, member_filed_late]
+  - id: sent_on_time
+    question: "Does the provider (or you) have proof the claim was originally sent within the window: a clearinghouse report, fax confirmation, or a mailing receipt?"
+    why_it_matters: "'Sent on time, insurer lost it' is the strongest argument, and proof of submission usually wins it outright."
+    answer_type: yes_no
+    unlocks: [proof_of_timely_submission]
+  - id: other_insurer_first
+    question: "Was the claim sent to a different insurer first (for example, an old plan, or the other parent's plan), and only sent here after that one denied it?"
+    why_it_matters: "Most plans restart the clock from the other insurer's denial date. This is a common and accepted reason."
+    answer_type: yes_no
+    unlocks: [other_insurer_first_arg]
+  - id: coverage_info_delay
+    question: "Was there a reason the provider couldn't have known your correct insurance in time, such as a new plan, retroactive enrolment, or a card that hadn't arrived?"
+    why_it_matters: "Retroactive coverage or missing insurance information is recognised good cause for late filing."
+    answer_type: free_text
+    unlocks: [good_cause]
+
+arguments:
+  - id: member_not_liable
+    strength: strong
+    requires:
+      questions: { billing_and_network: "Yes, and they're in network" }
+      evidence: []
+    claim: "The in-network provider cannot bill the member for a claim denied for the provider's late filing."
+    template: >
+      {provider.provider_name.value} is a participating provider in my plan's
+      network. Under the participating-provider agreement, a claim denied for
+      the provider's failure to file within the required period is the
+      provider's responsibility, and the member is held harmless. I request
+      written confirmation that I have no financial liability for this
+      service, and that the plan notify the provider that I may not be billed.
+
+  - id: proof_of_timely_submission
+    strength: strong
+    requires:
+      questions: { sent_on_time: true }
+      evidence: [proof_of_submission]
+    claim: "The claim was submitted within the filing window; proof of transmission is enclosed."
+    template: >
+      The claim was originally submitted on {original_submission_date}, within
+      the plan's filing period, as the enclosed {proof_type} demonstrates. The
+      plan's record of a later receipt date reflects a processing or
+      transmission failure, not a late filing. I request that the claim be
+      reprocessed with the original submission date.
+
+  - id: other_insurer_first_arg
+    strength: strong
+    requires:
+      questions: { other_insurer_first: true }
+      evidence: [other_insurer_denial]
+    claim: "The claim was timely filed with another insurer first; the filing period runs from that insurer's decision."
+    template: >
+      The claim was first submitted, in good faith and within the filing
+      period, to {other_insurer_name}, which denied it on
+      {other_insurer_denial_date} (enclosed). It was then submitted to this
+      plan on {this_submission_date}, within the period following that denial.
+      Under the plan's coordination-of-benefits and timely-filing provisions,
+      the filing period runs from the date of the other carrier's
+      determination. The claim was timely.
+
+  - id: good_cause
+    strength: medium
+    requires:
+      questions: { coverage_info_delay: nonempty }
+      evidence: []
+    claim: "Circumstances outside the filer's control prevented timely filing; the plan's good-cause exception applies."
+    template: >
+      The claim could not be filed within the standard period because
+      {coverage_info_delay}. These circumstances were outside the control of
+      the filing party. The plan's timely-filing provisions provide for
+      exceptions in such cases, and I request that the exception be applied
+      and the claim adjudicated on its merits.
+
+  - id: member_filed_late
+    strength: medium
+    requires:
+      questions: { who_filed: "I did" }
+      evidence: []
+    claim: "The member filed the claim personally and the delay was reasonable in the circumstances."
+    template: >
+      I submitted this claim myself for reimbursement. The delay was due to
+      {member_delay_reason}. I acted as promptly as circumstances allowed, and
+      I request that the plan exercise its discretion to accept the claim and
+      adjudicate it on its merits.
+
+  - id: request_receipt_date
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the plan's record of receipt and the filing limit relied upon."
+    template: >
+      I request the plan's record of the date(s) on which this claim was
+      received, including any earlier submissions or rejections, the filing
+      limit applied, and the plan document provision establishing it.
+
+evidence_checklist:
+  - id: proof_of_submission
+    item: "Clearinghouse acceptance report, fax confirmation, portal receipt, or certified-mail receipt showing when the claim was first sent"
+    who_provides: provider
+    required: false
+    how_to_get: "Ask the provider's billing office for the electronic claim submission report (they have one for every claim sent) showing the original submission date and acceptance."
+  - id: other_insurer_denial
+    item: "The other insurer's denial or EOB, showing its date"
+    who_provides: patient
+    required: false
+    how_to_get: "Member portal of the other plan, or the mailed EOB."
+  - id: coverage_documentation
+    item: "Proof of when your coverage was effective and when your ID card or enrolment confirmation arrived"
+    who_provides: patient
+    required: false
+    how_to_get: "Enrolment confirmation email, HR letter, or the postmark on the ID card envelope."
+  - id: provider_network_proof
+    item: "Proof the provider was in network on the date of service"
+    who_provides: patient
+    required: false
+    how_to_get: "Directory listing or an in-network EOB from the same provider."
+  - id: itemised_bill
+    item: "Itemised bill from the provider"
+    who_provides: provider
+    required: true
+    how_to_get: "Provider's billing office."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter or EOB"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "The plan's record of all dates on which this claim or any earlier version was received"
+  - "The filing limit applied and the plan provision establishing it"
+  - "Written confirmation of my financial liability, if any, given the provider's network status"
+
+escalation:
+  expedited_if: "Not applicable. Timely-filing denials are about past care."
+  external_review_note: >
+    Timely-filing denials do not involve medical judgement and usually aren't
+    eligible for external review. If an in-network provider bills you anyway,
+    complain to the insurer's provider-relations line and to the state
+    insurance department. If the plan refuses to honour proof of timely
+    submission, that is also a regulator complaint.
+
+pitfalls:
+  - "Paying the provider. If they're in network, they very likely cannot bill you. Ask them to cite the contract provision that lets them."
+  - "Appealing on the merits of the care. The merits aren't in question; only the date is."
+  - "Not getting the clearinghouse report. Providers can almost always prove the original submission date; they just have to look."
+  - "Missing your own appeal deadline while arguing with the provider. Send the appeal and pursue the provider in parallel."
+
+weak_case_signals:
+  - "The provider is out of network, filed late with no good cause, and the plan's filing limit is clear. The dispute is then with the provider over the bill, and the plan appeal is a courtesy request."
+  - "You filed the claim yourself, well beyond the limit, without a reason the plan would recognise."

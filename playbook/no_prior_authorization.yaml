@@ -1,0 +1,237 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: no_prior_authorization
+display_name: No prior authorization
+version: 0.1.0
+
+aliases:
+  - "prior authorization was not obtained"
+  - "no authorization on file"
+  - "precertification required"
+  - "precertification was not obtained"
+  - "pre-authorization not obtained"
+  - "no referral on file"
+  - "notification was not received"
+  - "authorization required for this service"
+  - "services were not pre-approved"
+  - "no approved authorization for this service"
+  - "the authorization on file does not match the service billed"
+  - "authorization expired"
+
+plain_english: >
+  Your insurer is saying that this treatment needed their approval in advance,
+  and they don't have a record of giving it. This is a paperwork denial, not a
+  judgement about whether you needed the care. It's one of the most fixable
+  kinds of denial: often the authorization was actually obtained and got
+  mismatched, the situation was an emergency where approval isn't required, or
+  the responsibility for getting approval belonged to your in-network doctor,
+  not you. Most plans will also consider a "retroactive authorization" if the
+  care itself would have been approved.
+
+insurer_obligations:
+  - id: retro_auth_process
+    text: >
+      Most plans have a process to review authorization after the fact when the
+      care was medically necessary. The letter should tell you how, and if it
+      doesn't, ask.
+    if_missing_argument: retro_auth_request
+  - id: emergency_exempt
+    text: >
+      Emergency care can never require prior authorization. If this was an
+      emergency, the denial is wrong on its face.
+    if_missing_argument: emergency_exempt
+  - id: in_network_provider_responsibility
+    text: >
+      When an in-network provider fails to get an authorization their contract
+      requires, most contracts say the provider, not the patient, absorbs the
+      cost. You should not be billed.
+    if_missing_argument: provider_responsibility
+
+clarifying_questions:
+  - id: emergency
+    question: "Was this emergency care, or care that had to happen urgently before anyone could get approval?"
+    why_it_matters: "Emergency care cannot require prior authorization. Urgent care usually has a short window to notify the insurer afterward."
+    answer_type: yes_no
+    unlocks: [emergency_exempt]
+  - id: auth_obtained
+    question: "Do you know whether anyone actually got an authorization? Check for an authorization or reference number on paperwork from your doctor or the insurer."
+    why_it_matters: "A surprising number of these denials are matching errors: the authorization exists but under a different code, date, or provider."
+    answer_type: choice
+    choices: ["Yes, I have an authorization number", "The doctor's office says they got one", "No, nobody got one", "Not sure"]
+    unlocks: [auth_exists_mismatch]
+  - id: provider_network
+    question: "Was the doctor or facility in your plan's network?"
+    why_it_matters: "In-network providers are usually contractually responsible for getting authorization. If they didn't, you generally can't be billed for it."
+    answer_type: choice
+    choices: ["In network", "Out of network", "Not sure"]
+    unlocks: [provider_responsibility]
+  - id: told_no_auth_needed
+    question: "Did anyone at the insurer or the provider's office tell you that no authorization was needed?"
+    why_it_matters: "If you were told it wasn't required and relied on that, it's a strong fairness argument. Note who said it and when."
+    answer_type: free_text
+    unlocks: [relied_on_misinformation]
+  - id: care_would_be_approved
+    question: "Would your doctor confirm this care was medically necessary and would normally have been approved?"
+    why_it_matters: "A retroactive authorization is granted when the care meets the plan's criteria; the doctor's letter shows that it does."
+    answer_type: yes_no
+    unlocks: [retro_auth_request]
+
+arguments:
+  - id: emergency_exempt
+    strength: strong
+    requires:
+      questions: { emergency: true }
+      evidence: [emergency_records]
+    claim: "Emergency services are exempt from prior authorization by law and by plan terms."
+    template: >
+      The services on {service.date_of_service_start.value} were emergency
+      services. I presented with {emergency_symptoms}, and a prudent layperson
+      would have believed that immediate care was required. Prior authorization
+      cannot be required for emergency services under federal law or the terms
+      of the plan. The denial should be reversed and the claim processed as
+      emergency care.
+
+  - id: auth_exists_mismatch
+    strength: strong
+    requires:
+      questions: { auth_obtained: ["Yes, I have an authorization number", "The doctor's office says they got one"] }
+      evidence: [authorization_record]
+    claim: "An authorization was obtained; the denial results from a mismatch between the authorization and the claim, which the plan should correct."
+    template: >
+      Prior authorization for this care was obtained. Authorization number
+      {authorization_number} was issued on {authorization_date} for
+      {authorized_service_description}. The claim was denied because
+      {mismatch_reason_if_known}. The care delivered is the care that was
+      authorized. I request that the plan match the authorization to this claim
+      and reprocess it.
+
+  - id: provider_responsibility
+    strength: strong
+    requires:
+      questions: { provider_network: "In network" }
+      evidence: []
+    claim: "The in-network provider was contractually responsible for obtaining authorization; the member is held harmless."
+    template: >
+      {provider.provider_name.value} is a participating provider in my plan's
+      network. Under the plan's participating-provider agreement, the
+      responsibility for obtaining any required prior authorization rests with
+      the provider, and a member may not be billed for services denied because
+      the provider failed to obtain it. I did not have the ability to obtain the
+      authorization myself. I ask that the plan process this claim under its
+      provider-responsibility provisions and confirm in writing that I am not
+      financially liable.
+
+  - id: retro_auth_request
+    strength: medium
+    requires:
+      questions: { care_would_be_approved: true }
+      evidence: [letter_of_medical_necessity]
+    claim: "Request retroactive authorization: the care met the plan's criteria and would have been approved if requested."
+    template: >
+      I request retroactive authorization for {service.description.value}. The
+      enclosed letter from {provider.provider_name.value} and the accompanying
+      records show that the care was medically necessary and satisfied the
+      plan's clinical criteria at the time it was provided. The absence of an
+      authorization number is an administrative gap, not a clinical one, and
+      the plan's retrospective review process exists for exactly this
+      situation.
+
+  - id: relied_on_misinformation
+    strength: medium
+    requires:
+      questions: { told_no_auth_needed: nonempty }
+      evidence: []
+    claim: "The member was told no authorization was needed and reasonably relied on that."
+    template: >
+      Before receiving this care, {told_no_auth_needed}. I relied in good faith
+      on that information. A member who is told by the plan or by a
+      participating provider that no authorization is required should not be
+      penalised when that information turns out to be wrong.
+
+  - id: urgent_care_notification
+    strength: medium
+    requires:
+      questions: { emergency: true }
+      evidence: []
+    claim: "For urgent admissions, notification within the plan's post-admission window satisfies the requirement."
+    template: >
+      To the extent the plan treats this as an urgent rather than emergency
+      admission, the plan's own terms provide a notification window after
+      admission. {notification_details}. Notification within that window
+      satisfies the authorization requirement.
+
+  - id: request_file
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the claim file and the authorization records."
+    template: >
+      I request a complete copy of the claim file, including any authorization
+      requests received from my provider, the dates they were received, and
+      the plan's responses, free of charge.
+
+evidence_checklist:
+  - id: authorization_record
+    item: "Any authorization or reference number, approval letter, or portal screenshot"
+    who_provides: patient
+    required: false
+    how_to_get: "Check letters and emails from the insurer around the date of service; ask the doctor's office for the authorization confirmation they received."
+  - id: letter_of_medical_necessity
+    item: "Letter from your doctor confirming the care was necessary and would have met authorization criteria"
+    who_provides: provider
+    required: true
+    how_to_get: "Ask the ordering doctor. Say the insurer denied for missing prior auth and you are requesting a retroactive authorization."
+  - id: emergency_records
+    item: "Emergency or admission records showing symptoms and arrival time"
+    who_provides: provider
+    required: false
+    how_to_get: "Hospital medical records department."
+  - id: provider_network_proof
+    item: "Proof the provider was in network on the date of service"
+    who_provides: patient
+    required: false
+    how_to_get: "Directory listing, or an EOB from the same visit processed as in-network."
+  - id: call_log
+    item: "Dates, names, and reference numbers of any calls where you were told authorization wasn't needed"
+    who_provides: patient
+    required: false
+    how_to_get: "Write it down from memory now; ask member services for the call record."
+  - id: relevant_medical_records
+    item: "Medical records supporting the need for the service"
+    who_provides: provider
+    required: true
+    how_to_get: "Doctor's office or patient portal."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "A complete copy of the claim file, including all authorization requests received and the plan's responses"
+  - "Retroactive authorization review of the service under the plan's clinical criteria"
+  - "Written confirmation of whether I am financially liable for this service under the provider's contract"
+
+escalation:
+  expedited_if: >
+    The denial is blocking care you still need (for example an ongoing
+    treatment or a follow-up procedure). Request an expedited appeal and, in
+    parallel, have the doctor's office submit a new authorization request for
+    the remaining care.
+  external_review_note: >
+    A pure "no authorization on file" denial with no medical judgement may not
+    qualify for external review. A retroactive-authorization denial that says
+    the care wasn't necessary does qualify. If the plan refuses to process a
+    retro request at all, complain to the state insurance department (fully
+    insured) or the Department of Labor (self-funded employer plans).
+
+pitfalls:
+  - "Paying the provider before checking whether they were responsible for the authorization. In-network providers usually cannot bill you for their own authorization failures."
+  - "Appealing only to the insurer when the fix is at the provider's office. Call the billing office first; they may be able to submit a retro-auth request directly, which is often faster."
+  - "Missing the mismatch case. Compare the authorization number, the CPT code, the provider name, and the date on the authorization against the claim."
+  - "Assuming the auth 'expired' argument is fatal. Ask the provider to request an extension retroactively with an explanation for the delay."
+
+weak_case_signals:
+  - "You chose an out-of-network provider for non-emergency care, knew authorization was required, and it was never requested. The appeal becomes a retro-auth request on the merits only."
+  - "The plan document explicitly says services without authorization are not covered and the provider is out of network. Then the strongest route is retro-auth plus a provider bill reduction."

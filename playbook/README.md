@@ -7,23 +7,38 @@ order arguments, (d) build the attachment checklist.
 
 This is not one generic prompt. Each reason has different counter-arguments,
 different evidence, and different insurer obligations. The file structure is in
-`_template.yaml`; `not_medically_necessary.yaml` is the fully worked example.
+`_template.yaml`. All eleven categories are drafted; none has yet been tested
+against real letters, so expect the `aliases` and `clarifying_questions` to
+change once the eval set exists.
 
 ## Categories
 
-| id | Fully worked? | How insurers phrase it | Core counter |
-|----|---------------|------------------------|--------------|
-| `not_medically_necessary` | yes | "does not meet medical necessity criteria", "not clinically indicated", "does not meet clinical guidelines" | Physician letter of medical necessity + demand the specific criteria used + show the criteria are met or don't fit the patient |
-| `experimental_investigational` | template only | "experimental", "investigational", "unproven", "not standard of care" | Peer-reviewed evidence, FDA status, specialty-society guidelines, other insurers' coverage policies |
-| `out_of_network` | template only | "non-participating provider", "out of network", "not contracted" | Network adequacy (no in-network specialist within reasonable distance), continuity of care, emergency exception, No Surprises Act if applicable, provider was listed in-network in directory |
-| `no_prior_authorization` | template only | "authorization not obtained", "no precertification on file", "notification required" | Retro-authorization request; emergency exception; provider's responsibility under contract (in-network); auth was obtained (provide number); auth not required per plan documents |
-| `not_a_covered_benefit` | template only | "excluded under your plan", "not a covered service", "benefit exclusion" | Read the actual plan document (SPD / EOC); exclusion misapplied; service falls under a different covered category; state mandate requires coverage |
-| `step_therapy_or_formulary` | template only | "must first try", "non-formulary", "not on preferred drug list", "quantity limit" | Step-therapy exception: already tried/failed, contraindicated, stable on current drug; many states have step-therapy override laws |
-| `coding_or_billing_error` | template only | "invalid code", "bundled", "duplicate", "diagnosis does not support procedure" | Usually a provider-side fix; ask provider to rebill; not a true appeal — route the user to the billing office first |
-| `missing_information` | template only | "additional information required", "records not received" | Not a true denial; supply the records; confirm receipt; the deadline clock matters here |
-| `timely_filing` | template only | "claim not submitted within filing limit" | Provider's responsibility for in-network; patient not liable; proof of timely submission |
-| `eligibility_or_coordination_of_benefits` | template only | "not eligible on date of service", "other insurance primary", "COB information needed" | Proof of coverage; update COB with insurer; often clerical |
-| `other` | generic fallback | — | Generic: request criteria, request file, physician support, restate facts |
+| id | Kind of denial | How insurers phrase it | Core counter |
+|----|----------------|------------------------|--------------|
+| `not_medically_necessary` | clinical | "does not meet medical necessity criteria", "not clinically indicated", "lower level of care" | Physician letter of medical necessity; demand the specific criteria; show criteria are met; conservative treatment already failed |
+| `experimental_investigational` | clinical | "experimental", "investigational", "unproven", "not standard of care" | FDA status; specialty-society guidelines and literature; specialist letter; off-label is routine; demand the policy and its review date |
+| `out_of_network` | contractual | "non-participating provider", "out of network", "not contracted" | Emergency; No Surprises Act at in-network facility; network inadequacy; directory error; continuity of care; retroactive gap exception |
+| `no_prior_authorization` | administrative | "authorization not obtained", "no precertification on file" | Emergency exemption; auth exists but mismatched; in-network provider's responsibility; retroactive authorization; relied on misinformation |
+| `not_a_covered_benefit` | contractual | "excluded under your plan", "not a covered service", "cosmetic", "limit exceeded" | Read the plan document; exclusion misapplied; reconstructive not cosmetic; federal/state mandated benefit; mental health parity; limit not permitted |
+| `step_therapy_or_formulary` | clinical | "must first try", "non-formulary", "quantity limit" | Already tried and failed; contraindicated; stable on current drug; state step-therapy law; quantity justified; treat as formal exception request |
+| `coding_or_billing_error` | administrative | "invalid code", "bundled", "duplicate", "diagnosis does not support" | Provider corrects and resubmits; not a duplicate; member not liable for in-network coding errors; request remark codes |
+| `missing_information` | administrative | "additional information required", "records not received" | Supply exactly what was asked, with a cover letter; prove it was already sent; respond inside the window |
+| `timely_filing` | administrative | "claim not submitted within filing limit" | In-network provider is liable, not member; proof of timely submission; filed with another insurer first; good cause |
+| `eligibility_or_coordination_of_benefits` | administrative | "not eligible on date of service", "other insurance primary", "COB questionnaire" | Proof of coverage; no other coverage; COB order rules; old plan terminated; retroactive enrolment; grace period; identifier correction |
+| `other` | unknown | vague or unusual wording | Route to a category via extra questions; otherwise demand the specific reason, request criteria and file, physician support, restate facts |
+
+## Control ids in `unlocks`
+
+Two ids can appear in a question's `unlocks` list without being arguments:
+
+- `expedited_request` — tells the checklist generator to surface the expedited
+  appeal route and switch reminder cadence.
+- `lmn_needed` — tells the checklist generator to add the "request a letter of
+  medical necessity from your doctor" task with a draft request.
+
+In `other.yaml`, the `route_to_category` argument is also a control step: it
+re-runs classification with the user's answers and switches playbooks. It emits
+no letter text.
 
 ## Rights that apply across categories (commercial plans)
 

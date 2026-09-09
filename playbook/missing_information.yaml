@@ -1,0 +1,188 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: missing_information
+display_name: Missing information
+version: 0.1.0
+
+aliases:
+  - "additional information is required"
+  - "additional information requested"
+  - "medical records were requested but not received"
+  - "records not received"
+  - "the information submitted was insufficient"
+  - "unable to determine medical necessity without additional documentation"
+  - "claim is pended"
+  - "pending receipt of"
+  - "we need more information from your provider"
+  - "we need more information from you"
+  - "accident questionnaire"
+  - "coordination of benefits questionnaire not returned"
+  - "itemized bill required"
+  - "operative report required"
+  - "letter of medical necessity required"
+
+plain_english: >
+  Your insurer hasn't actually decided your claim yet. They're saying they
+  asked for something (records, a form, an itemised bill) and didn't get it,
+  so they denied or pended the claim by default. This is usually the easiest
+  kind of denial to resolve: find out exactly what they wanted, get it sent,
+  and confirm they received it. The catch is timing. Insurers give a short
+  window to respond, and if it's missed the claim can be denied for good,
+  so treat this as urgent even though it's simple.
+
+insurer_obligations:
+  - id: specific_request
+    text: >
+      The letter must say exactly what information is missing and who was
+      asked for it. "Additional information required" without detail is not
+      enough; ask what specifically.
+    if_missing_argument: request_specifics
+  - id: reasonable_window
+    text: >
+      You should be given a reasonable period (typically 45 days or more) to
+      supply missing information before a claim is finally denied.
+    if_missing_argument: window_not_expired
+  - id: reconsider_on_receipt
+    text: >
+      Once the information is supplied, the plan must adjudicate the claim on
+      its merits, not treat the earlier denial as final.
+    if_missing_argument: reconsider_on_receipt
+
+clarifying_questions:
+  - id: what_requested
+    question: "Does the letter say exactly what they need, and from whom (you or your doctor)?"
+    why_it_matters: "The whole fix is supplying the right thing. If the letter is vague, the first step is a phone call to pin it down."
+    answer_type: free_text
+    unlocks: [supply_information, request_specifics]
+  - id: form_received
+    question: "If they asked you for a form (accident questionnaire, other-insurance questionnaire, student status), did you receive it? Have you sent it back?"
+    why_it_matters: "These forms are routinely mailed to old addresses or lost. Returning it usually reopens the claim immediately."
+    answer_type: choice
+    choices: ["Received it and returned it", "Received it, not yet returned", "Never received it", "They didn't ask me for a form"]
+    unlocks: [supply_information, already_supplied]
+  - id: provider_sent
+    question: "If they asked your doctor for records, has the doctor's office sent them? Do they have proof (fax confirmation, portal upload date)?"
+    why_it_matters: "Providers often say they sent records that the insurer says never arrived. Proof of sending settles it."
+    answer_type: choice
+    choices: ["Yes, with proof", "They say yes, no proof", "No", "Not sure"]
+    unlocks: [already_supplied, supply_information]
+  - id: response_deadline
+    question: "Does the letter give a deadline to respond with the information? What is it?"
+    why_it_matters: "This deadline is often shorter than the appeal deadline. It's the one to act on first."
+    answer_type: date
+    unlocks: [window_not_expired]
+  - id: contacted_insurer
+    question: "Have you called the insurer to confirm what they still need?"
+    why_it_matters: "A five-minute call often reveals the request was already satisfied, or that something small is missing."
+    answer_type: yes_no
+    unlocks: []
+
+arguments:
+  - id: supply_information
+    strength: strong
+    requires:
+      questions: {}
+      evidence: [requested_information]
+    claim: "The requested information is enclosed; process the claim on its merits."
+    template: >
+      Your letter dated {document.letter_date.value} states that the claim
+      could not be processed because {denial.reason_text.value}. The requested
+      information is enclosed: {enclosed_items}. Please process claim
+      {member.claim_number.value} on its merits and confirm receipt of this
+      information in writing.
+
+  - id: already_supplied
+    strength: strong
+    requires:
+      questions: { provider_sent: "Yes, with proof" }
+      evidence: [proof_of_submission]
+    claim: "The information was already sent; proof of transmission is enclosed and the claim should be processed."
+    template: >
+      The information requested was previously provided. {provider.provider_name.value}
+      transmitted the records on {submission_date} via {submission_method}, as
+      the enclosed confirmation shows. A second copy is enclosed. Because the
+      information was supplied within the required period, the claim should be
+      adjudicated on its merits with no timely-filing penalty.
+
+  - id: window_not_expired
+    strength: medium
+    requires:
+      questions: { response_deadline: nonempty }
+      evidence: []
+    claim: "The response is within the window the plan set, so the claim cannot be finally denied."
+    template: >
+      Your letter allowed until {response_deadline} to supply the requested
+      information. This response is submitted within that period. The claim
+      should therefore remain open and be adjudicated once the enclosed
+      information is reviewed.
+
+  - id: request_specifics
+    strength: medium
+    requires:
+      questions: {}
+      evidence: []
+    claim: "The letter does not say what information is missing; the plan must identify it specifically."
+    template: >
+      Your letter states that additional information is required but does not
+      identify what information, in what form, or from whom. I request a
+      specific written list of the information needed, and I ask that the
+      period to supply it run from the date I receive that list.
+
+  - id: reconsider_on_receipt
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request that the claim be reopened and decided on the merits, and that any subsequent denial state clinical or contractual reasons."
+    template: >
+      Please treat this submission as a request to reopen and adjudicate the
+      claim on its merits. If the claim is denied after review of the enclosed
+      information, I ask that the denial state the specific clinical or
+      contractual basis so that I may appeal it.
+
+evidence_checklist:
+  - id: requested_information
+    item: "Exactly what the letter asked for (records, form, itemised bill, operative report)"
+    who_provides: patient
+    required: true
+    how_to_get: "Records and operative reports: doctor's office or hospital medical records. Forms: insurer's member portal or member services. Itemised bill: provider's billing office."
+  - id: proof_of_submission
+    item: "Fax confirmation, portal upload receipt, or certified-mail receipt for anything already sent"
+    who_provides: provider
+    required: false
+    how_to_get: "Ask the provider's office for their fax log or upload confirmation."
+  - id: cover_letter
+    item: "A cover letter listing every enclosed item and referencing the claim number"
+    who_provides: patient
+    required: true
+    how_to_get: "We generate this. It makes it much harder for the insurer to say something was missing."
+  - id: denial_letter_copy
+    item: "A copy of the letter requesting the information"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your response."
+
+standing_requests:
+  - "Written confirmation of receipt of the enclosed information, with the date received"
+  - "A specific list of anything still outstanding"
+  - "Adjudication of the claim on its merits, with the original filing date preserved"
+
+escalation:
+  expedited_if: >
+    The pended claim is a prior authorization for care you still need. Then
+    supply the information and ask for an expedited decision.
+  external_review_note: >
+    Not applicable until the claim is actually decided. If the plan refuses to
+    process a claim after the information is supplied, or repeatedly claims
+    non-receipt, that is a complaint to the state insurance department or the
+    Department of Labor.
+
+pitfalls:
+  - "Treating this as a real denial and writing a medical-necessity appeal. Send what was asked for; save the appeal for if it's then denied on the merits."
+  - "Sending records without a cover letter and claim number. They get separated and 'lost'."
+  - "Relying on the provider's word that records were sent. Get the fax confirmation."
+  - "Missing the response deadline while waiting on the doctor's office. Call the insurer, tell them the records are coming, and ask for the deadline to be noted."
+  - "Ignoring a questionnaire because it seems irrelevant. An unanswered 'were you in an accident?' form stops the whole claim."
+
+weak_case_signals:
+  - "The response window has long passed and the plan has issued a final denial. Then this becomes a timely_filing or reconsideration case; use that playbook and explain why the information was late."

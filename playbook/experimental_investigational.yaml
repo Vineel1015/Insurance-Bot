@@ -1,0 +1,260 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: experimental_investigational
+display_name: Experimental or investigational
+version: 0.1.0
+
+aliases:
+  - "experimental"
+  - "investigational"
+  - "experimental/investigational"
+  - "unproven"
+  - "not proven to be effective"
+  - "not considered standard of care"
+  - "has not been shown to improve health outcomes"
+  - "insufficient evidence in the peer-reviewed literature"
+  - "not approved by the FDA for this indication"
+  - "off-label use"
+  - "not generally accepted by the medical community"
+  - "clinical trial"
+
+plain_english: >
+  Your insurer is saying they consider this treatment unproven for your
+  condition. This is different from saying it's unnecessary; they are
+  questioning whether the treatment works at all, based on their reading of the
+  research. These denials are often based on a written policy that may be out
+  of date, may not cover your exact situation, or may be stricter than what
+  specialists actually do. Appeals that bring the evidence and a specialist's
+  explanation win a meaningful share of the time.
+
+insurer_obligations:
+  - id: policy_disclosed
+    text: >
+      The letter should name the medical policy or technology assessment used to
+      call this experimental. You can request a free copy, and it should show
+      what evidence they reviewed and when the policy was last updated.
+    if_missing_argument: request_policy
+  - id: reviewer_specialist
+    text: >
+      A decision about whether a treatment is established in a specialty should
+      be made by someone practising in that specialty.
+    if_missing_argument: request_specialist_review
+  - id: file_available
+    text: "You are entitled to a free copy of the full claim file."
+    if_missing_argument: request_file
+
+clarifying_questions:
+  - id: fda_status
+    question: "Is the treatment or drug FDA-approved, and if so, is it approved for your condition or for something else?"
+    why_it_matters: "FDA approval for your condition strongly undercuts an experimental label. Approval for a different condition (off-label) is still a common, accepted practice, but needs a different argument."
+    answer_type: choice
+    choices: ["Approved for my condition", "Approved, but for a different condition", "Not FDA-approved / not applicable", "Not sure"]
+    unlocks: [fda_approved_for_indication, off_label_accepted]
+  - id: specialist_recommended
+    question: "Was this recommended by a specialist in your condition, and would they write a letter explaining why it's the standard treatment in their field?"
+    why_it_matters: "A specialist stating this is standard practice, with citations, is the core of this appeal."
+    answer_type: yes_no
+    unlocks: [specialist_standard_of_care]
+  - id: guidelines_known
+    question: "Do you or your doctor know of professional guidelines (for example from a medical society) that recommend this treatment for your condition?"
+    why_it_matters: "Guidelines from the relevant specialty society are the evidence insurers find hardest to dismiss."
+    answer_type: free_text
+    unlocks: [guidelines_support]
+  - id: alternatives_exhausted
+    question: "Have standard treatments for your condition already been tried and failed, or are they not an option for you?"
+    why_it_matters: "When nothing standard is left, insurers and external reviewers give more weight to a promising treatment."
+    answer_type: free_text
+    unlocks: [no_standard_alternative]
+  - id: condition_serious
+    question: "Is your condition serious or life-threatening, or getting worse quickly?"
+    why_it_matters: "Serious conditions qualify for expedited appeal and, in many states, for external review with a lower evidence bar."
+    answer_type: yes_no
+    unlocks: [urgency, expedited_request]
+
+arguments:
+  - id: fda_approved_for_indication
+    strength: strong
+    requires:
+      questions: { fda_status: "Approved for my condition" }
+      evidence: []
+    claim: "The treatment is FDA-approved for exactly this use, which is the opposite of experimental."
+    template: >
+      {service.description.value} is approved by the U.S. Food and Drug
+      Administration for the treatment of {diagnosis_plain}. A treatment that
+      has completed FDA review for this indication cannot reasonably be
+      described as experimental or investigational. I ask that the plan identify
+      what evidence, beyond FDA approval, it would require, and why.
+
+  - id: specialist_standard_of_care
+    strength: strong
+    requires:
+      questions: { specialist_recommended: true }
+      evidence: [specialist_letter]
+    claim: "A specialist in this condition states the treatment is established practice in the field and explains the evidence base."
+    template: >
+      The enclosed letter from {provider.provider_name.value}, a specialist in
+      {relevant_specialty}, explains that {service.description.value} is an
+      accepted treatment for {diagnosis_plain} in current practice, and
+      summarises the clinical evidence supporting its use. A determination that
+      a treatment is experimental should reflect the current consensus of the
+      specialty that uses it, not a general policy that may not have been
+      updated to reflect it.
+
+  - id: guidelines_support
+    strength: strong
+    requires:
+      questions: { guidelines_known: nonempty }
+      evidence: [guidelines_or_literature]
+    claim: "Professional guidelines and peer-reviewed literature recommend this treatment for this condition."
+    template: >
+      This treatment is recommended for my condition by {guidelines_known}. I am
+      enclosing the relevant excerpts and the peer-reviewed studies they rely
+      on. Where a plan's policy conflicts with published specialty guidelines,
+      the guidelines reflect the more current and more expert view of the
+      evidence.
+
+  - id: off_label_accepted
+    strength: medium
+    requires:
+      questions: { fda_status: "Approved, but for a different condition" }
+      evidence: []
+    claim: "Off-label use is routine, legal, and covered when supported by evidence and compendia; the plan should evaluate the evidence, not the label."
+    template: >
+      Although {service.description.value} is FDA-approved for a different
+      indication, off-label prescribing is a standard and lawful part of medical
+      practice, and most plans cover off-label use that is supported by
+      recognised drug compendia or peer-reviewed evidence. The enclosed
+      materials show that support for my condition. I ask that the plan apply
+      its off-label coverage criteria rather than treat the label alone as
+      decisive.
+
+  - id: no_standard_alternative
+    strength: medium
+    requires:
+      questions: { alternatives_exhausted: nonempty }
+      evidence: []
+    claim: "Standard treatments have failed or are unavailable, so this is the appropriate next option, not a speculative one."
+    template: >
+      I have already received or been evaluated for the standard treatments for
+      my condition: {alternatives_exhausted}. These have failed, are
+      contraindicated, or are not available to me. In that situation, the
+      requested treatment is not an experimental alternative to standard care;
+      it is the remaining reasonable option, and my physician has recommended it
+      on that basis.
+
+  - id: request_policy
+    strength: medium
+    requires:
+      questions: {}
+      evidence: []
+    claim: "The letter does not identify the policy or evidence review behind the experimental label; request it, including the date it was last reviewed."
+    template: >
+      The denial does not identify the medical policy, technology assessment, or
+      evidence review on which the experimental determination is based. I request
+      a copy free of charge, including the list of studies considered and the
+      date the policy was last updated, so that I can respond to the specific
+      evidence the plan relied upon.
+
+  - id: urgency
+    strength: medium
+    requires:
+      questions: { condition_serious: true }
+      evidence: []
+    claim: "The condition is serious; delay or denial has grave consequences and the appeal should be expedited."
+    template: >
+      My condition is serious and {harm_of_delay}. My physician has confirmed
+      that delay in treatment risks significant harm. I request that this appeal
+      be handled on an expedited basis.
+
+  - id: request_specialist_review
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request that the appeal be reviewed by a specialist in the relevant field."
+    template: >
+      I request that this appeal be reviewed by a physician board-certified in
+      {relevant_specialty} who actively treats {diagnosis_plain} and who was not
+      involved in the original decision, and that the reviewer's credentials be
+      provided with the decision.
+
+  - id: request_file
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the full claim file."
+    template: >
+      I request a complete copy of the claim file, including all documents,
+      records, and internal notes considered in making this decision, free of
+      charge.
+
+evidence_checklist:
+  - id: specialist_letter
+    item: "Letter from your specialist explaining why this treatment is accepted practice for your condition, with citations"
+    who_provides: provider
+    required: true
+    how_to_get: >
+      Ask your specialist's office. Tell them the insurer called the treatment
+      experimental; they have usually fought this before and may have a template
+      letter and a citation list ready.
+  - id: guidelines_or_literature
+    item: "Specialty society guidelines and peer-reviewed studies supporting this treatment for your condition"
+    who_provides: provider
+    required: true
+    how_to_get: "Your specialist can provide these. PubMed and the specialty society website are the public sources. Include the first page of each study and highlight the relevant conclusion."
+  - id: fda_documentation
+    item: "FDA approval or clearance documentation, or drug label showing the indication"
+    who_provides: patient
+    required: false
+    how_to_get: "Search the FDA website for the drug or device name; print the approval letter or the label's Indications section."
+  - id: relevant_medical_records
+    item: "Records showing your diagnosis and what treatments you have already tried"
+    who_provides: provider
+    required: true
+    how_to_get: "Request visit notes and treatment history from your doctor's office or patient portal."
+  - id: insurer_policy_document
+    item: "The insurer's medical policy that labels this treatment experimental"
+    who_provides: insurer
+    required: false
+    how_to_get: "Ask for it by calling the number on the denial letter, or search the insurer's website for 'medical policy' plus the treatment name. Note the last-reviewed date."
+  - id: other_insurer_policies
+    item: "Coverage policies from other major insurers that cover this treatment"
+    who_provides: patient
+    required: false
+    how_to_get: "Most large insurers publish medical policies online. If two or three competitors cover it, that is useful evidence the treatment is established."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "A copy of the medical policy or technology assessment relied upon, including the studies reviewed and the date of last update"
+  - "The name and specialty of the original reviewer and the appeal reviewer"
+  - "A complete copy of the claim file"
+  - "If the denial is upheld, a written explanation of what evidence the plan would consider sufficient"
+
+escalation:
+  expedited_if: >
+    Your condition is serious and waiting for a standard appeal could cause
+    significant harm. Call the expedited number on the letter; your doctor can
+    call too. Decisions are typically due within 72 hours.
+  external_review_note: >
+    Experimental/investigational denials are specifically eligible for external
+    review under federal rules, and many states require the external reviewer
+    to be a specialist in the condition. External reviewers overturn these
+    denials at a notably high rate when the specialty evidence is strong. If
+    your condition is life-threatening, some states allow you to go straight to
+    external review.
+
+pitfalls:
+  - "Sending only a patient statement. This appeal is won on evidence and specialist authority."
+  - "Citing a single small study. Prefer guidelines, systematic reviews, or FDA status; add individual studies as support."
+  - "Ignoring the insurer's policy. If you can get it, respond to its specific reasoning and note how old its evidence review is."
+  - "Confusing 'experimental' with 'not medically necessary'. If the letter argues you don't need it rather than that it doesn't work, use the not_medically_necessary playbook."
+
+weak_case_signals:
+  - "The treatment is genuinely still in trials and has no published outcome data; the appeal then rests on compassionate-use or clinical-trial coverage provisions, which are a different route."
+  - "No specialist is willing to write in support."
+  - "The plan document explicitly excludes the treatment by name; that is a not_a_covered_benefit case."

@@ -1,0 +1,266 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: eligibility_or_coordination_of_benefits
+display_name: Eligibility or coordination of benefits
+version: 0.1.0
+
+aliases:
+  - "not eligible on the date of service"
+  - "coverage was not in effect"
+  - "member was not active"
+  - "coverage terminated"
+  - "patient not enrolled"
+  - "dependent not eligible"
+  - "dependent exceeds age limit"
+  - "coordination of benefits"
+  - "other insurance is primary"
+  - "we need information about other coverage"
+  - "this plan is secondary"
+  - "submit to the primary carrier first"
+  - "premium not paid"
+  - "grace period"
+  - "the patient cannot be identified as our insured"
+  - "subscriber information does not match"
+
+plain_english: >
+  Your insurer is saying either that you weren't covered on the day you got
+  care, or that some other insurance should have paid first. These denials
+  are about records, not medicine, and they are usually caused by something
+  clerical: an enrolment that hadn't been processed, an old plan still on file
+  at the doctor's office, a form about "other insurance" that was never
+  returned, a mistyped member ID, or a premium payment that crossed in the
+  mail. The fix is to prove you were covered, correct the record, and have the
+  claim reprocessed. If you truly had two plans, both may need to be told
+  which one is primary.
+
+insurer_obligations:
+  - id: eligibility_basis_stated
+    text: >
+      The denial should say what the plan's records show: the coverage dates
+      it has on file, or which other insurer it believes is primary.
+    if_missing_argument: request_eligibility_record
+  - id: cob_rules
+    text: >
+      Which plan pays first is determined by standard coordination-of-benefits
+      rules (for example, your own employer plan before a spouse's; for
+      children, the parent whose birthday falls earlier in the year). The plan
+      cannot simply assume another plan is primary.
+    if_missing_argument: cob_order_correct
+  - id: grace_period
+    text: >
+      If coverage lapsed for non-payment, marketplace plans and many others
+      have a grace period during which coverage continues or can be
+      reinstated by paying the overdue premium.
+    if_missing_argument: grace_period_reinstatement
+
+clarifying_questions:
+  - id: coverage_status
+    question: "As far as you know, were you covered by this plan on the date of service? What do you have that shows it (ID card, enrolment confirmation, pay stub with premium deduction)?"
+    why_it_matters: "Proof of coverage on the date of service resolves most eligibility denials on its own."
+    answer_type: free_text
+    unlocks: [proof_of_coverage]
+  - id: other_coverage
+    question: "Did you (or the patient) have any other health insurance on the date of service, such as a spouse's plan, a parent's plan, or an old plan that hadn't been cancelled?"
+    why_it_matters: "If there truly is other coverage, we need to figure out which plan is primary. If there isn't, the plan just needs to be told so."
+    answer_type: choice
+    choices: ["No other coverage", "Yes, another plan was active", "An old plan that should have ended", "Not sure"]
+    unlocks: [no_other_coverage, cob_order_correct, old_plan_terminated]
+  - id: cob_form
+    question: "Did the insurer send you a form asking about other insurance (a coordination of benefits questionnaire), and did you return it?"
+    why_it_matters: "An unreturned COB form is the single most common cause of this denial. Returning it usually reopens the claim without an appeal."
+    answer_type: choice
+    choices: ["Returned it", "Received it, not returned", "Never received it", "Not sure"]
+    unlocks: [cob_form_response]
+  - id: enrolment_change
+    question: "Was there a recent change: new job, open enrolment, marriage, birth, turning 26, a missed premium, or a switch between plans?"
+    why_it_matters: "Eligibility gaps almost always trace to a transition. Knowing which one tells us what document proves coverage."
+    answer_type: free_text
+    unlocks: [proof_of_coverage, retroactive_enrolment, grace_period_reinstatement]
+  - id: id_mismatch
+    question: "Does the member ID, name, and date of birth on the denial match your ID card exactly?"
+    why_it_matters: "A single wrong digit makes you 'not our insured'. The provider resubmits with the right information and the denial goes away."
+    answer_type: yes_no
+    unlocks: [identifier_correction]
+
+arguments:
+  - id: proof_of_coverage
+    strength: strong
+    requires:
+      questions: { coverage_status: nonempty }
+      evidence: [coverage_proof]
+    claim: "The member was covered on the date of service; proof is enclosed."
+    template: >
+      I was enrolled in and covered by this plan on
+      {service.date_of_service_start.value}. The enclosed {coverage_proof_type}
+      confirms coverage effective {coverage_effective_date}. The plan's
+      eligibility record appears to be in error. I request that the record be
+      corrected and the claim reprocessed.
+
+  - id: no_other_coverage
+    strength: strong
+    requires:
+      questions: { other_coverage: "No other coverage" }
+      evidence: []
+    claim: "There is no other coverage; this plan is primary and sole."
+    template: >
+      I confirm that I had no other health insurance coverage on
+      {service.date_of_service_start.value}. This plan is the only coverage
+      and is therefore primary. Please update your coordination-of-benefits
+      record accordingly and process the claim as primary.
+
+  - id: cob_order_correct
+    strength: strong
+    requires:
+      questions: { other_coverage: "Yes, another plan was active" }
+      evidence: [other_plan_details]
+    claim: "Under standard coordination-of-benefits rules, this plan is primary (or the other plan has already paid and this plan is secondary)."
+    template: >
+      On the date of service I was also covered by {other_plan_name}. Under
+      standard coordination-of-benefits rules, {cob_rule_applied}, this plan
+      is {primary_or_secondary}. {other_plan_action_taken}. I request that the
+      claim be processed accordingly, and I have enclosed the other plan's
+      information and, where applicable, its explanation of benefits.
+
+  - id: old_plan_terminated
+    strength: strong
+    requires:
+      questions: { other_coverage: "An old plan that should have ended" }
+      evidence: [termination_proof]
+    claim: "The other coverage on file had terminated before the date of service."
+    template: >
+      The other coverage in your records, {old_plan_name}, terminated on
+      {old_plan_termination_date}, before the date of service, as the enclosed
+      confirmation shows. That plan is not primary and no claim can be
+      submitted to it. Please remove it from the coordination-of-benefits
+      record and process this claim as primary.
+
+  - id: cob_form_response
+    strength: strong
+    requires:
+      questions: { cob_form: ["Received it, not returned", "Never received it", "Not sure"] }
+      evidence: []
+    claim: "The coordination-of-benefits information is provided here; process the claim."
+    template: >
+      To the extent the claim was denied pending a coordination-of-benefits
+      questionnaire, this letter provides the requested information:
+      {cob_information_summary}. Please update your records and process the
+      claim.
+
+  - id: retroactive_enrolment
+    strength: medium
+    requires:
+      questions: { enrolment_change: nonempty }
+      evidence: [coverage_proof]
+    claim: "Enrolment was effective retroactively to a date before the service; the claim should be covered."
+    template: >
+      My enrolment in this plan was effective {coverage_effective_date},
+      although it was not processed until {enrolment_processed_date} because
+      {enrolment_change}. Coverage was in effect on the date of service. I
+      request that the eligibility record reflect the correct effective date
+      and that the claim be reprocessed.
+
+  - id: grace_period_reinstatement
+    strength: medium
+    requires:
+      questions: { enrolment_change: nonempty }
+      evidence: [premium_payment_proof]
+    claim: "Coverage was within the grace period or has been reinstated; claims from that period must be paid."
+    template: >
+      The date of service fell within the plan's premium grace period. The
+      overdue premium was paid on {premium_payment_date}, as the enclosed
+      confirmation shows, and coverage was continued or reinstated without a
+      gap. Claims incurred during the grace period are payable once the
+      premium is paid. I request that the claim be reprocessed.
+
+  - id: identifier_correction
+    strength: medium
+    requires:
+      questions: { id_mismatch: false }
+      evidence: []
+    claim: "The claim was submitted with incorrect identifying information; the provider is resubmitting with the correct details."
+    template: >
+      The claim was submitted with incorrect member information
+      ({mismatch_detail}). My correct information is on the enclosed copy of
+      my ID card. I have asked {provider.provider_name.value} to resubmit the
+      claim with the correct information, and I ask that it be processed with
+      the original filing date honoured.
+
+  - id: request_eligibility_record
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the plan's eligibility and COB records."
+    template: >
+      I request a copy of the plan's eligibility record for me and any
+      dependents, showing coverage effective and termination dates, and the
+      plan's coordination-of-benefits record showing any other coverage on
+      file and its source.
+
+evidence_checklist:
+  - id: coverage_proof
+    item: "Proof you were covered on the date of service: ID card, enrolment confirmation, HR letter, marketplace eligibility notice, or pay stubs showing premium deductions"
+    who_provides: patient
+    required: true
+    how_to_get: "HR or benefits portal for employer plans; the marketplace account for marketplace plans; the insurer's member portal for coverage dates."
+  - id: other_plan_details
+    item: "If you had other coverage: the other plan's name, member ID, effective dates, and its EOB for this claim if it has processed it"
+    who_provides: patient
+    required: false
+    how_to_get: "Other plan's ID card and member portal."
+  - id: termination_proof
+    item: "Proof an old plan ended: termination letter, COBRA notice, or final EOB"
+    who_provides: patient
+    required: false
+    how_to_get: "Former employer's HR, or the old insurer's member services."
+  - id: premium_payment_proof
+    item: "Proof of premium payment and date, if coverage lapsed and was reinstated"
+    who_provides: patient
+    required: false
+    how_to_get: "Bank statement, payment confirmation, or the marketplace account."
+  - id: id_card_copy
+    item: "Copy of the front and back of your insurance ID card"
+    who_provides: patient
+    required: true
+    how_to_get: "Photograph it."
+  - id: itemised_bill
+    item: "Itemised bill from the provider"
+    who_provides: provider
+    required: false
+    how_to_get: "Provider's billing office."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter or EOB"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "The plan's eligibility record showing coverage dates on file for me and any dependents"
+  - "The coordination-of-benefits record and the source of any other coverage listed"
+  - "Correction of the record and reprocessing of the claim, with the original filing date honoured"
+  - "Written confirmation of my financial liability, if any, for the period in dispute"
+
+escalation:
+  expedited_if: >
+    The eligibility problem is blocking current care, such as a pharmacy
+    refusing to fill a prescription or a provider refusing to schedule. Call
+    member services and ask for an eligibility correction on the spot, and
+    ask the provider to re-verify eligibility.
+  external_review_note: >
+    Eligibility and COB denials do not involve medical judgement and are not
+    eligible for external review. If the plan will not correct an eligibility
+    error that your employer or the marketplace confirms, complain to the
+    state insurance department (fully insured or marketplace plans) or the
+    Department of Labor (self-funded employer plans). For marketplace
+    enrolment errors, the marketplace itself has an appeals process.
+
+pitfalls:
+  - "Ignoring the COB questionnaire. It looks like junk mail and it stops every claim until returned."
+  - "Not telling the provider. Their system may still have the old plan. Give them the current card and ask them to re-verify and resubmit."
+  - "Assuming the insurer is right about which plan is primary. The rules are mechanical and often misapplied, especially for children with two covered parents."
+  - "Letting a premium lapse become a termination. Pay within the grace period and keep the confirmation."
+  - "Fighting the insurer when the error is at HR or the marketplace. If enrolment was never transmitted, the employer or marketplace has to fix it first."
+
+weak_case_signals:
+  - "You genuinely were not enrolled on the date of service and no retroactive enrolment right applies. Then the question is whether the provider will reduce the bill or whether another plan covers it."
+  - "The premium grace period passed without payment and coverage was validly terminated."

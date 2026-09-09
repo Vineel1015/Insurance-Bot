@@ -1,0 +1,217 @@
+# Legal/regulatory statements here are starting points to verify, not conclusions.
+
+id: coding_or_billing_error
+display_name: Coding or billing error
+version: 0.1.0
+
+aliases:
+  - "invalid procedure code"
+  - "invalid diagnosis code"
+  - "diagnosis is inconsistent with the procedure"
+  - "diagnosis does not support the service"
+  - "procedure code is inconsistent with the modifier"
+  - "missing modifier"
+  - "this service is bundled"
+  - "included in the payment for another service"
+  - "incidental to the primary procedure"
+  - "duplicate claim"
+  - "duplicate of a previously processed claim"
+  - "unbundling"
+  - "place of service is invalid"
+  - "provider type is invalid for this service"
+  - "claim lacks information needed for adjudication"
+  - "the number of units billed exceeds the maximum"
+
+plain_english: >
+  This denial is almost always about how the doctor's office filled out the
+  claim, not about your care or your coverage. A code was wrong or missing, the
+  diagnosis on the form didn't match the procedure, two things were billed
+  separately that the insurer pays for together, or the same claim was sent
+  twice. The fix usually belongs to the provider's billing office: they correct
+  the claim and resubmit it. You generally should not be billed for a
+  provider's coding error, especially if they are in your plan's network. Your
+  job is mostly to make sure that resubmission happens, and to appeal only if
+  the corrected claim is also denied.
+
+insurer_obligations:
+  - id: specific_code_identified
+    text: >
+      The letter or EOB should identify which code or field is the problem
+      (often as a remark code). If it doesn't, ask for the specific claim
+      adjustment reason and remark codes.
+    if_missing_argument: request_remark_codes
+  - id: corrected_claim_accepted
+    text: >
+      Plans must accept corrected claims within their filing window. A denial
+      for a coding error does not end the claim; it invites a correction.
+    if_missing_argument: corrected_claim_request
+  - id: member_not_liable
+    text: >
+      In-network provider contracts generally prohibit billing the patient for
+      claims denied because of the provider's billing errors.
+    if_missing_argument: member_not_liable
+
+clarifying_questions:
+  - id: contacted_billing
+    question: "Have you contacted the provider's billing office about this denial? What did they say?"
+    why_it_matters: "The provider can usually fix and resubmit the claim in a few days. This is faster than any appeal."
+    answer_type: choice
+    choices: ["Yes, they are resubmitting", "Yes, they say the claim is correct", "Yes, they told me to pay", "No, not yet"]
+    unlocks: [corrected_claim_request, provider_says_correct, member_not_liable]
+  - id: being_billed
+    question: "Is the provider billing you for the denied amount?"
+    why_it_matters: "If the provider is in network, you generally can't be billed for their coding error. If they're out of network, the picture is different."
+    answer_type: yes_no
+    unlocks: [member_not_liable]
+  - id: provider_network
+    question: "Was the provider in your plan's network?"
+    why_it_matters: "In-network providers have contractual limits on billing you. Out-of-network providers don't, so the appeal matters more."
+    answer_type: choice
+    choices: ["In network", "Out of network", "Not sure"]
+    unlocks: [member_not_liable]
+  - id: duplicate_context
+    question: "If the denial says 'duplicate', did you actually receive the service more than once (for example, the same test on two days, or two of the same procedure on both sides)?"
+    why_it_matters: "A real repeat service isn't a duplicate; the claim just needs a modifier or a different date to say so."
+    answer_type: free_text
+    unlocks: [not_a_duplicate]
+  - id: service_actually_received
+    question: "Does the service described on the denial match what you actually received?"
+    why_it_matters: "If it doesn't, the wrong code was billed. Your account of the visit helps the billing office correct it."
+    answer_type: free_text
+    unlocks: [wrong_service_coded]
+
+arguments:
+  - id: corrected_claim_request
+    strength: strong
+    requires:
+      questions: { contacted_billing: ["Yes, they are resubmitting", "No, not yet"] }
+      evidence: []
+    claim: "The denial results from a claim-form error; a corrected claim is being submitted and should be processed on its merits."
+    template: >
+      The denial identifies a billing or coding issue ({denial.reason_text.value}).
+      The service was provided as described in the enclosed records. I have
+      asked {provider.provider_name.value} to submit a corrected claim. I ask
+      that the corrected claim be accepted and adjudicated on its merits, and
+      that the original filing date be honoured for timely-filing purposes.
+
+  - id: provider_says_correct
+    strength: medium
+    requires:
+      questions: { contacted_billing: "Yes, they say the claim is correct" }
+      evidence: [provider_coding_statement]
+    claim: "The provider maintains the coding is correct; the plan should explain the specific edit applied and reconsider."
+    template: >
+      {provider.provider_name.value} has reviewed the claim and maintains that
+      the codes billed accurately reflect the services provided, for the
+      reasons in the enclosed statement. The denial does not explain which
+      coding rule or edit was applied. I request the specific claim adjustment
+      reason code, remark code, and the bundling or edit rule relied upon, and
+      that the claim be reviewed by a certified coder in light of the
+      provider's statement.
+
+  - id: not_a_duplicate
+    strength: strong
+    requires:
+      questions: { duplicate_context: nonempty }
+      evidence: [relevant_medical_records]
+    claim: "The service was genuinely performed more than once; the claim is not a duplicate."
+    template: >
+      The claim was denied as a duplicate. It is not. {duplicate_context}. The
+      enclosed records document each separate service. The provider is
+      resubmitting with the appropriate modifier or date distinction, and I ask
+      that each service be processed.
+
+  - id: wrong_service_coded
+    strength: medium
+    requires:
+      questions: { service_actually_received: nonempty }
+      evidence: [relevant_medical_records]
+    claim: "The service billed does not match the service received; the corrected claim will reflect the actual service."
+    template: >
+      The service described on the denial does not match what I received. I
+      received {service_actually_received}, as the enclosed records confirm.
+      The provider is submitting a corrected claim for the service actually
+      rendered.
+
+  - id: member_not_liable
+    strength: strong
+    requires:
+      questions: { being_billed: true, provider_network: "In network" }
+      evidence: []
+    claim: "The member cannot be billed for an in-network provider's coding error."
+    template: >
+      {provider.provider_name.value} is a participating provider. Under the
+      participating-provider agreement, a member may not be billed for charges
+      denied because of the provider's billing or coding errors. I request
+      written confirmation that I have no financial liability for the denied
+      amount, and that the plan notify the provider accordingly.
+
+  - id: request_remark_codes
+    strength: weak
+    requires:
+      questions: {}
+      evidence: []
+    claim: "Request the specific adjustment and remark codes and the edit rule applied."
+    template: >
+      I request the claim adjustment reason code(s), remittance advice remark
+      code(s), and the specific coding edit or bundling rule applied to this
+      claim, so that the provider can correct or contest it precisely.
+
+evidence_checklist:
+  - id: itemised_bill
+    item: "Itemised bill from the provider showing every code billed"
+    who_provides: provider
+    required: true
+    how_to_get: "Ask the billing office for an itemised statement with CPT/HCPCS and diagnosis codes."
+  - id: eob
+    item: "The Explanation of Benefits with the remark codes"
+    who_provides: patient
+    required: true
+    how_to_get: "Insurer's member portal. Look for codes like CO-16, CO-97, CO-18, M-, N- on the line items."
+  - id: relevant_medical_records
+    item: "Visit notes showing what was actually done"
+    who_provides: provider
+    required: false
+    how_to_get: "Doctor's office or patient portal."
+  - id: provider_coding_statement
+    item: "A statement from the provider's billing office explaining the coding, if they say it's correct"
+    who_provides: provider
+    required: false
+    how_to_get: "Ask the billing manager. Many offices have a coding appeal template."
+  - id: corrected_claim_confirmation
+    item: "Confirmation from the provider that a corrected claim was submitted, and the date"
+    who_provides: provider
+    required: false
+    how_to_get: "Ask the billing office for the resubmission date and claim number."
+  - id: denial_letter_copy
+    item: "A copy of the denial letter or EOB"
+    who_provides: patient
+    required: true
+    how_to_get: "Include a copy with your appeal."
+
+standing_requests:
+  - "The specific claim adjustment reason and remark codes, and the coding edit or bundling rule applied"
+  - "Acceptance of a corrected claim with the original filing date honoured"
+  - "Written confirmation of my financial liability, if any, given the provider's network status"
+
+escalation:
+  expedited_if: >
+    Rarely relevant. Only if the unpaid claim is blocking further care (for
+    example, a provider refusing to schedule until paid).
+  external_review_note: >
+    Coding disputes usually don't qualify for external review because there's
+    no medical judgement involved. If the provider is in network and bills
+    you anyway, complain to the insurer's provider-relations line and, if
+    unresolved, to the state insurance department. If the plan refuses to
+    accept a corrected claim inside the filing window, that is also a
+    regulator complaint.
+
+pitfalls:
+  - "Appealing before calling the billing office. Ninety percent of these are fixed by a resubmission, and the appeal is unnecessary."
+  - "Paying the bill because the EOB says 'patient responsibility'. That figure is often wrong on a coding denial; check network status first."
+  - "Missing the filing window for the corrected claim. Providers typically have 90 to 180 days from the date of service; nudge them early."
+  - "Confusing a bundling denial with a real denial. 'Included in another service' usually means the insurer paid for it already under a different line."
+
+weak_case_signals:
+  - "The provider is out of network, insists the coding is correct, and the plan's edit is standard (for example a National Correct Coding Initiative bundling edit). The dispute is then between you and the provider over the bill."
+  - "The 'error' is that the diagnosis doesn't support the service and the provider agrees the service wasn't needed for your diagnosis. That becomes a billing dispute, not an appeal."
