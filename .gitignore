@@ -7,3 +7,8 @@ uploads/
 .env*
 __pycache__/
 node_modules/
+
+# reminder case state and outbox contain contact info (email/phone) — never commit
+reminders/state/*
+!reminders/state/.gitkeep
+reminders/outbox.jsonl

@@ -18,7 +18,7 @@ and is facing an appeal deadline.
 4. Agent generates a ready-to-send appeal letter plus a checklist:
    what to attach, where to send it, deadline on a calendar.
 5. One reminder email/text before the deadline: "Your appeal window closes in
-   10 days — did you send it?"
+   10 days — did you send it?" (see `reminders/`)
 
 ## Explicitly out of scope for MVP
 
