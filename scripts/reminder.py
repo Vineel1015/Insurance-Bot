@@ -2,12 +2,16 @@
 appeal window closes, escalating to daily as the deadline nears, plus a
 "did you send it?" confirmation and a later outcome check-in.
 
-This module is deliberately deterministic — no model call, no vendor
-integration. It answers two questions given a case and today's date:
-"should a reminder go out today, and what should it say?" Actually sending
-the message is behind a small `Sender` seam (default: log to a local
-outbox file) so a real email/SMS provider can be wired in later without
-touching the scheduling or content logic.
+The scheduling and content logic is deliberately deterministic — no model
+call. It answers two questions given a case and today's date: "should a
+reminder go out today, and what should it say?" Actually sending the
+message is behind a small `Sender` seam. Sender.from_env() delivers for
+real via SMTP (smtp_send_email — SendGrid, Postmark, SES, Mailgun, Gmail,
+or any other SMTP relay) and Twilio (twilio_send_sms) the moment their env
+vars are set — see each function's docstring — and falls back to logging
+to a local outbox file, per channel, otherwise. Run
+`python scripts/reminder.py send-test --email you@example.com` to check a
+provider is actually configured correctly before relying on it.
 
 Privacy (see schema/VALIDATION.md P1-P3): a case's reminder state stores
 only what the reminders themselves need — contact info the user gave for
@@ -27,16 +31,23 @@ CLI:
     python scripts/reminder.py mark-sent --state cases/abc123.json --sent true
     python scripts/reminder.py report-outcome --state cases/abc123.json --outcome won
     python scripts/reminder.py delete --state cases/abc123.json
+    python scripts/reminder.py send-test --email you@example.com --phone +15551234567
 """
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
+import smtplib
 import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from email.message import EmailMessage
 from typing import Callable
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -350,9 +361,79 @@ def render_sms(kind: str, state: dict, today: date) -> str:
 
 
 # --------------------------------------------------------------- delivery --
-# Real email/SMS providers plug in here. The default just logs to a local
-# outbox file (gitignored — it contains contact info) so the scheduling and
-# content logic can be exercised and inspected without any vendor account.
+# Real email/SMS providers plug in here. Both concrete providers below are
+# stdlib-only (smtplib / urllib) — no vendor SDK dependency for what is,
+# underneath, one SMTP conversation and one HTTP POST. Sender.from_env()
+# picks them up automatically when configured, per-channel, and otherwise
+# falls back to logging to a local outbox file (gitignored — it contains
+# contact info) so the scheduling and content logic can be exercised and
+# inspected without any vendor account, and so a deployment with only one
+# channel configured doesn't break the other.
+
+def smtp_send_email(to: str, subject: str, body: str) -> None:
+    """Sends one plain-text email over SMTP. Works with SendGrid, Postmark,
+    AWS SES, Mailgun, Gmail, or any other provider's SMTP relay — every
+    major transactional-email provider offers one alongside its REST API,
+    so pointing these env vars at it is enough; no provider-specific code.
+
+    Env vars:
+        SMTP_HOST        required
+        SMTP_FROM        required (falls back to SMTP_USERNAME if unset)
+        SMTP_PORT        default 587
+        SMTP_USERNAME    optional — omit only for an unauthenticated relay
+        SMTP_PASSWORD    optional, paired with SMTP_USERNAME
+        SMTP_USE_SSL     default false (STARTTLS on SMTP_PORT). Set true
+                          for implicit TLS (typically port 465) instead.
+    """
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    username = os.environ.get("SMTP_USERNAME")
+    password = os.environ.get("SMTP_PASSWORD")
+    from_addr = os.environ.get("SMTP_FROM") or username
+    if not from_addr:
+        raise RuntimeError("SMTP_FROM (or SMTP_USERNAME) must be set to send email")
+    use_ssl = os.environ.get("SMTP_USE_SSL", "false").strip().lower() in ("1", "true", "yes")
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = from_addr
+    msg["To"] = to
+    msg.set_content(body)
+
+    smtp_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+    with smtp_cls(host, port, timeout=15) as smtp:
+        if not use_ssl:
+            smtp.starttls()
+        if username and password:
+            smtp.login(username, password)
+        smtp.send_message(msg)
+
+
+def twilio_send_sms(to: str, text: str) -> None:
+    """Sends one SMS via Twilio's REST API.
+
+    Env vars (all required): TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
+    TWILIO_FROM_NUMBER.
+    """
+    account_sid = os.environ["TWILIO_ACCOUNT_SID"]
+    auth_token = os.environ["TWILIO_AUTH_TOKEN"]
+    from_number = os.environ["TWILIO_FROM_NUMBER"]
+
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+    data = urllib.parse.urlencode({"To": to, "From": from_number, "Body": text}).encode()
+    creds = base64.b64encode(f"{account_sid}:{auth_token}".encode()).decode()
+
+    req = urllib.request.Request(url, data=data, method="POST")
+    req.add_header("Authorization", f"Basic {creds}")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if resp.status >= 300:
+                raise RuntimeError(f"Twilio API returned HTTP {resp.status}")
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Twilio API error {e.code}: {detail}") from e
+
 
 @dataclass
 class Sender:
@@ -369,6 +450,19 @@ class Sender:
     def _console_sms(self, to: str, text: str) -> None:
         _append_outbox({"channel": "sms", "to": to, "text": text})
 
+    @classmethod
+    def from_env(cls) -> "Sender":
+        """A Sender using real providers wherever configured, falling back
+        to the outbox logger per channel otherwise — an environment with
+        only SMTP_HOST set still logs SMS to the outbox instead of raising,
+        and vice versa. This is what tick()/tick-all/mark-sent use by
+        default; pass an explicit Sender only to override or in tests.
+        """
+        return cls(
+            send_email=smtp_send_email if os.environ.get("SMTP_HOST") else None,
+            send_sms=twilio_send_sms if os.environ.get("TWILIO_ACCOUNT_SID") else None,
+        )
+
 
 def _append_outbox(record: dict, path: str = DEFAULT_OUTBOX) -> None:
     record = {"sent_at": datetime.now().isoformat(timespec="seconds"), **record}
@@ -379,28 +473,60 @@ def _append_outbox(record: dict, path: str = DEFAULT_OUTBOX) -> None:
         f.write(json.dumps(record) + "\n")
 
 
+def _send_channel(send_fn: Callable, *args, channel: str, to: str) -> bool:
+    """Runs one send, catching and logging any failure rather than raising
+    — a bad phone number or a provider outage must never crash a tick,
+    especially tick-all working through many cases in one run. Returns
+    whether it succeeded, so the caller can decide whether to retry.
+    """
+    try:
+        send_fn(*args)
+        return True
+    except Exception as e:  # noqa: BLE001 — deliberately broad: any provider failure lands here
+        print(f"[reminder] failed to send {channel} to {to}: {e}", file=sys.stderr)
+        _append_outbox({"channel": channel, "to": to, "status": "failed", "error": str(e)})
+        return False
+
+
 # --------------------------------------------------------------- tick/run --
+
+def _dispatch(state: dict, kind: str, today: date, sender: Sender) -> bool:
+    """Renders and sends one message kind to every configured contact
+    channel. Returns whether at least one channel delivered — a total
+    failure across every attempted channel means nothing reached the user,
+    so the caller should not mark this as sent.
+    """
+    email = render_email(kind, state, today)
+    sms = render_sms(kind, state, today)
+    contact = state["contact"]
+    attempted = False
+    delivered = False
+    if contact.get("email"):
+        attempted = True
+        delivered |= _send_channel(sender.send_email, contact["email"], email["subject"], email["body"], channel="email", to=contact["email"])
+    if contact.get("phone"):
+        attempted = True
+        delivered |= _send_channel(sender.send_sms, contact["phone"], sms, channel="sms", to=contact["phone"])
+    return delivered or not attempted
+
 
 def tick(state: dict, today: date | None = None, sender: Sender | None = None) -> dict:
     """Decides whether a reminder is due and, if so, renders and sends it,
     then updates and returns the state. Does not save to disk — callers
     (the CLI, or a scheduled job) do that so this stays a pure decision +
-    side-effect step, easy to test.
+    side-effect step, easy to test. Defaults to Sender.from_env(), so this
+    delivers for real the moment SMTP_HOST / TWILIO_ACCOUNT_SID are set —
+    no code change needed to go from logging-only to live.
     """
     today = today or date.today()
-    sender = sender or Sender()
+    sender = sender or Sender.from_env()
 
     kind = decide(state, today)
     if kind is None:
         return state
 
-    email = render_email(kind, state, today)
-    sms = render_sms(kind, state, today)
-    contact = state["contact"]
-    if contact.get("email"):
-        sender.send_email(contact["email"], email["subject"], email["body"])
-    if contact.get("phone"):
-        sender.send_sms(contact["phone"], sms)
+    if not _dispatch(state, kind, today, sender):
+        return state  # every channel failed — leave unmarked so the next tick retries
 
     state["reminders_sent"].append({"date": today.isoformat(), "kind": kind})
     return state
@@ -411,14 +537,8 @@ def mark_sent(state: dict, sent: bool, today: date | None = None, sender: Sender
     state["sent_confirmed"] = sent
     if sent:
         state["sent_confirmed_at"] = today.isoformat()
-        sender = sender or Sender()
-        email = render_email(SENT_ACK, state, today)
-        sms = render_sms(SENT_ACK, state, today)
-        contact = state["contact"]
-        if contact.get("email"):
-            sender.send_email(contact["email"], email["subject"], email["body"])
-        if contact.get("phone"):
-            sender.send_sms(contact["phone"], sms)
+        sender = sender or Sender.from_env()
+        _dispatch(state, SENT_ACK, today, sender)
         state["reminders_sent"].append({"date": today.isoformat(), "kind": SENT_ACK})
     return state
 
@@ -471,18 +591,24 @@ def _cmd_tick(args) -> int:
 def _cmd_tick_all(args) -> int:
     today = _today(args.today)
     n_sent = 0
+    n_errored = 0
     for name in sorted(os.listdir(args.state_dir)):
         if not name.endswith(".json"):
             continue
         path = os.path.join(args.state_dir, name)
-        state = load_state(path)
-        before = len(state["reminders_sent"])
-        state = tick(state, today)
-        if len(state["reminders_sent"]) > before:
-            n_sent += 1
-            print(f"Sent {state['reminders_sent'][-1]['kind']} for {state['case_id']}")
-        save_state(path, state)
-    print(f"{n_sent} reminder(s) sent across {args.state_dir} for {today.isoformat()}")
+        try:
+            state = load_state(path)
+            before = len(state["reminders_sent"])
+            state = tick(state, today)
+            if len(state["reminders_sent"]) > before:
+                n_sent += 1
+                print(f"Sent {state['reminders_sent'][-1]['kind']} for {state['case_id']}")
+            save_state(path, state)
+        except Exception as e:  # noqa: BLE001 — one bad case must not abort the whole run
+            n_errored += 1
+            print(f"[reminder] error processing {name}: {e}", file=sys.stderr)
+    print(f"{n_sent} reminder(s) sent across {args.state_dir} for {today.isoformat()}"
+          + (f" ({n_errored} case(s) errored, see stderr)" if n_errored else ""))
     return 0
 
 
@@ -509,6 +635,37 @@ def _cmd_delete(args) -> int:
         print(f"Deleted {args.state}")
     else:
         print(f"{args.state} does not exist")
+    return 0
+
+
+def _cmd_send_test(args) -> int:
+    """Fires one real message through whatever's configured in the
+    environment, without needing a case — for checking SMTP/Twilio
+    credentials actually work before relying on the daily cadence to
+    surface a problem.
+    """
+    if not args.email and not args.phone:
+        print("Pass --email and/or --phone to send a test message to.", file=sys.stderr)
+        return 1
+    sender = Sender.from_env()
+    ok = True
+    if args.email:
+        configured = os.environ.get("SMTP_HOST") is not None
+        print(f"Sending test email to {args.email} via {'SMTP' if configured else 'the outbox (SMTP_HOST not set)'}...")
+        ok &= _send_channel(sender.send_email, args.email, "Appeal Helper test email",
+                             "This is a test message from `python scripts/reminder.py send-test`. "
+                             "If you received this, SMTP is configured correctly.",
+                             channel="email", to=args.email)
+    if args.phone:
+        configured = os.environ.get("TWILIO_ACCOUNT_SID") is not None
+        print(f"Sending test SMS to {args.phone} via {'Twilio' if configured else 'the outbox (TWILIO_ACCOUNT_SID not set)'}...")
+        ok &= _send_channel(sender.send_sms, args.phone,
+                             "Appeal Helper test SMS. If you received this, Twilio is configured correctly.",
+                             channel="sms", to=args.phone)
+    if not ok:
+        print("At least one send failed — see the error above.", file=sys.stderr)
+        return 1
+    print("Done. If a provider wasn't configured, check reminders/outbox.jsonl instead of an inbox.")
     return 0
 
 
@@ -548,6 +705,11 @@ def main() -> int:
     p = sub.add_parser("delete", help="Permanently delete a case's reminder state")
     p.add_argument("--state", required=True)
     p.set_defaults(func=_cmd_delete)
+
+    p = sub.add_parser("send-test", help="Send one real test message via whatever's configured in the environment, no case needed")
+    p.add_argument("--email", help="Send a test email here")
+    p.add_argument("--phone", help="Send a test SMS here")
+    p.set_defaults(func=_cmd_send_test)
 
     args = ap.parse_args()
     return args.func(args)

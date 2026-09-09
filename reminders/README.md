@@ -47,11 +47,57 @@ fired.
 
 ## Delivery
 
-`Sender` in `reminder.py` is the seam for a real provider: pass
-`send_email`/`send_sms` callables into `Sender(...)` to wire up SMTP,
-Twilio, etc. The default writes every message to `reminders/outbox.jsonl`
-instead of sending anything — inspect it to see exactly what would have
-gone out. That file is gitignored (see Privacy below); delete it freely.
+`tick`, `tick-all`, and `mark-sent` all use `Sender.from_env()` by
+default, which delivers for real the moment the relevant environment
+variables are set — no code change needed to go from logging-only to
+live. Whichever channel isn't configured keeps writing to
+`reminders/outbox.jsonl` instead of raising, so a deployment with only
+email set up (say) doesn't break SMS.
+
+**Email — SMTP.** Works with SendGrid, Postmark, AWS SES, Mailgun, Gmail,
+or any other provider's SMTP relay; every major transactional-email
+provider offers one, so there's no vendor SDK dependency for this, just
+the stdlib `smtplib`.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `SMTP_HOST` | yes | also the "is SMTP configured" switch |
+| `SMTP_FROM` | yes (or set `SMTP_USERNAME`) | the From address |
+| `SMTP_PORT` | no | default `587` |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | no | omit only for an unauthenticated relay |
+| `SMTP_USE_SSL` | no | `true` for implicit TLS (typically port 465); default is STARTTLS on `SMTP_PORT` |
+
+**SMS — Twilio.** One HTTP POST to Twilio's REST API via stdlib
+`urllib`, again no SDK dependency.
+
+| Variable | Required |
+|---|---|
+| `TWILIO_ACCOUNT_SID` | yes — also the "is Twilio configured" switch |
+| `TWILIO_AUTH_TOKEN` | yes |
+| `TWILIO_FROM_NUMBER` | yes |
+
+**Check it's actually working** before relying on the daily cadence to
+surface a misconfiguration:
+
+```bash
+python scripts/reminder.py send-test --email you@example.com --phone +15551234567
+```
+
+**Failure handling.** A provider error (bad credentials, an outage, an
+invalid number) is caught per channel — it's logged to stderr and to the
+outbox as a `"status": "failed"` record, never raised. `tick` only marks
+a reminder as sent if at least one configured channel actually
+delivered; if every channel failed, nothing is recorded and the next
+tick retries automatically. `tick-all` additionally catches anything
+unexpected per case (a corrupted state file, say) so one bad case can't
+abort a whole batch run — it prints the error and moves on.
+
+**Once a provider is configured, the user's email and/or phone number are
+sent to it** (your SMTP relay's operator, or Twilio) to actually deliver
+the message — this is unavoidable for real delivery, but it's a real
+third-party disclosure worth stating plainly to the user, consistent with
+the rest of this project's privacy framing, not something to leave
+implicit.
 
 ## Privacy
 

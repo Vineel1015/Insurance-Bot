@@ -95,6 +95,12 @@
 
 <h2>Get a reminder before your deadline</h2>
 <div class="card">
+  <p class="hint">
+    We'll email or text you as your deadline gets close, and check back
+    once to see whether you sent it. Your email or phone number is used
+    only to send these messages, through our email/text provider — we
+    don't use it for anything else.
+  </p>
   <form action="{{ url_for('remind', case_id=case_id) }}" method="post">
     <label for="name">Name</label>
     <input type="text" id="name" name="name">

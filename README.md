@@ -30,6 +30,7 @@ Each has its own README with the detail; this file is just the map.
 ## Status
 
 MVP, not production. See each README's own caveats — the web wrapper's
-in particular (in-memory session state, no real email/SMS provider wired
-in) is worth reading before treating this as more than a working
-demonstration of the loop.
+in particular (in-memory session state, lost on restart, no multi-process
+support) is worth reading before treating this as more than a working
+demonstration of the loop. Reminders can deliver for real via SMTP and
+Twilio once configured — see [reminders/README.md](reminders/README.md#delivery).
