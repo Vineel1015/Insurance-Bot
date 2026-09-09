@@ -92,7 +92,7 @@ arguments:
       evidence: [specialist_letter]
     claim: "A specialist in this condition states the treatment is established practice in the field and explains the evidence base."
     template: >
-      The enclosed letter from {provider.provider_name.value}, a specialist in
+      The enclosed letter from {treating_physician_name}, a specialist in
       {relevant_specialty}, explains that {service.description.value} is an
       accepted treatment for {diagnosis_plain} in current practice, and
       summarises the clinical evidence supporting its use. A determination that

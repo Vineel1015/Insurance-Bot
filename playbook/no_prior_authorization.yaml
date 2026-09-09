@@ -129,7 +129,7 @@ arguments:
     claim: "Request retroactive authorization: the care met the plan's criteria and would have been approved if requested."
     template: >
       I request retroactive authorization for {service.description.value}. The
-      enclosed letter from {provider.provider_name.value} and the accompanying
+      enclosed letter from {treating_physician_name} and the accompanying
       records show that the care was medically necessary and satisfied the
       plan's clinical criteria at the time it was provided. The absence of an
       authorization number is an administrative gap, not a clinical one, and

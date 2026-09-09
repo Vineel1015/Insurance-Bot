@@ -109,7 +109,7 @@ arguments:
       evidence: [letter_of_medical_necessity]
     claim: "The treating physician supports the care as necessary and appropriate."
     template: >
-      My treating physician, {provider.provider_name.value}, has determined
+      My treating physician, {treating_physician_name}, has determined
       that {service.description.value} is necessary and appropriate for my
       condition, {diagnosis_plain}, for the reasons in the enclosed letter. To
       the extent the denial rests on any judgement about the appropriateness

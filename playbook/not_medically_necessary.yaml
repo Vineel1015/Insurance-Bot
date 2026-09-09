@@ -83,7 +83,7 @@ arguments:
       evidence: [letter_of_medical_necessity]
     claim: "The treating physician, who knows the patient, has determined this is medically necessary and explains why."
     template: >
-      My treating physician, {provider.provider_name.value}, has determined that
+      My treating physician, {treating_physician_name}, has determined that
       {service.description.value} is medically necessary for my diagnosis of
       {diagnosis_plain}. Their enclosed letter explains my clinical history, why
       this treatment is appropriate for my specific situation, and the expected
