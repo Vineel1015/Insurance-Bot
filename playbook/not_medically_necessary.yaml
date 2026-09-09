@@ -53,6 +53,11 @@ clarifying_questions:
     why_it_matters: "The strongest appeal is your treating doctor saying, in writing, why you specifically need this."
     answer_type: yes_no
     unlocks: [treating_physician_supports, lmn_needed]
+  - id: diagnosis_plain
+    question: "In a sentence or two, what is the medical condition or diagnosis this treatment is for, in your own words?"
+    why_it_matters: "This fills in your diagnosis in the letter accurately instead of leaving a blank for you to complete."
+    answer_type: free_text
+    unlocks: []
   - id: has_lmn
     question: "Do you already have a letter from your doctor explaining why you need this (sometimes called a letter of medical necessity)?"
     why_it_matters: "If yes, we attach it. If no, we'll draft a request you can send to your doctor's office."
@@ -63,10 +68,10 @@ clarifying_questions:
     why_it_matters: "Insurers often deny because they think a cheaper option hasn't been tried. Showing you tried it and it failed is a strong argument."
     answer_type: free_text
     unlocks: [conservative_treatment_failed]
-  - id: condition_worsening
-    question: "Is your condition getting worse, or would waiting cause serious harm?"
-    why_it_matters: "This can qualify you for a faster (expedited) appeal, decided in days instead of weeks."
-    answer_type: yes_no
+  - id: harm_of_delay
+    question: "If this treatment is delayed or denied, what could happen to your health? For example, your condition could worsen, you could lose function, or you could need more invasive treatment later."
+    why_it_matters: "A concrete answer here strengthens your appeal and can qualify you for a faster (expedited) appeal, decided in days instead of weeks."
+    answer_type: free_text
     unlocks: [urgency, expedited_request]
   - id: records_sent
     question: "As far as you know, did your doctor's office send the insurer your medical records before this decision?"
@@ -145,13 +150,13 @@ arguments:
   - id: urgency
     strength: medium
     requires:
-      questions: { condition_worsening: true }
+      questions: { harm_of_delay: nonempty }
       evidence: []
     claim: "Delay causes harm; the decision should account for the consequences of not treating."
     template: >
-      Without this treatment, my condition is expected to {harm_of_delay}, as
-      described by my physician. Medical necessity should be assessed in light
-      of the consequences of withholding care, not only the current presentation.
+      Without this treatment, {harm_of_delay}. My physician has described these
+      risks to me. Medical necessity should be assessed in light of the
+      consequences of withholding care, not only the current presentation.
 
   - id: request_reviewer_credentials
     strength: weak

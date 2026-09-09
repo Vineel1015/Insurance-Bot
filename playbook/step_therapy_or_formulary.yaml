@@ -72,10 +72,10 @@ clarifying_questions:
     why_it_matters: "Quantity-limit exceptions are granted when the prescriber documents why the standard dose is insufficient."
     answer_type: free_text
     unlocks: [quantity_justified]
-  - id: urgency
-    question: "Would going without this drug, or switching to a different one, cause serious harm or a rapid worsening of your condition?"
-    why_it_matters: "This qualifies you for an expedited exception decision within 24 hours."
-    answer_type: yes_no
+  - id: harm_of_delay
+    question: "If you go without this drug, or have to switch to a different one, what could happen to your health?"
+    why_it_matters: "This qualifies you for an expedited exception decision within 24 hours, and it's used directly in your letter."
+    answer_type: free_text
     unlocks: [urgency_argument, expedited_request]
 
 arguments:
@@ -152,13 +152,13 @@ arguments:
   - id: urgency_argument
     strength: medium
     requires:
-      questions: { urgency: true }
+      questions: { harm_of_delay: nonempty }
       evidence: []
     claim: "Interruption or switching would cause serious harm; the exception should be expedited."
     template: >
-      Interrupting or switching this medication would {harm_of_delay}, as my
-      prescriber confirms. I request that this exception be reviewed on an
-      expedited basis, with a decision within 24 hours.
+      If I have to stop or switch this medication, {harm_of_delay}. My
+      prescriber has confirmed this risk. I request that this exception be
+      reviewed on an expedited basis, with a decision within 24 hours.
 
   - id: request_criteria
     strength: medium

@@ -60,6 +60,11 @@ clarifying_questions:
     why_it_matters: "If a medical judgement is anywhere in this denial, the doctor's support is the strongest thing you can add."
     answer_type: free_text
     unlocks: [physician_support]
+  - id: diagnosis_plain
+    question: "In a sentence or two, what is the medical condition or diagnosis this is about, in your own words?"
+    why_it_matters: "This fills in your diagnosis in the letter instead of leaving a blank for you to complete."
+    answer_type: free_text
+    unlocks: []
   - id: still_need_care
     question: "Is this about care you still need, or care you already received?"
     why_it_matters: "Care you still need may qualify for an expedited appeal; care already received is about payment."

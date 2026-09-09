@@ -79,6 +79,11 @@ clarifying_questions:
     why_it_matters: "Continuity-of-care rules usually require the plan to keep covering an ongoing course of treatment for a transition period."
     answer_type: yes_no
     unlocks: [continuity_of_care]
+  - id: diagnosis_plain
+    question: "In a sentence or two, what is the medical condition or diagnosis you're being treated for?"
+    why_it_matters: "If you're in the middle of ongoing treatment, this names your condition in the continuity-of-care argument."
+    answer_type: free_text
+    unlocks: []
 
 arguments:
   - id: emergency

@@ -44,6 +44,11 @@ insurer_obligations:
     if_missing_argument: request_file
 
 clarifying_questions:
+  - id: diagnosis_plain
+    question: "In a sentence or two, what is the medical condition or diagnosis this treatment is for, in your own words?"
+    why_it_matters: "Several of the strongest arguments in your appeal need to name your diagnosis plainly; this fills that in automatically."
+    answer_type: free_text
+    unlocks: []
   - id: fda_status
     question: "Is the treatment or drug FDA-approved, and if so, is it approved for your condition or for something else?"
     why_it_matters: "FDA approval for your condition strongly undercuts an experimental label. Approval for a different condition (off-label) is still a common, accepted practice, but needs a different argument."
@@ -65,10 +70,10 @@ clarifying_questions:
     why_it_matters: "When nothing standard is left, insurers and external reviewers give more weight to a promising treatment."
     answer_type: free_text
     unlocks: [no_standard_alternative]
-  - id: condition_serious
-    question: "Is your condition serious or life-threatening, or getting worse quickly?"
-    why_it_matters: "Serious conditions qualify for expedited appeal and, in many states, for external review with a lower evidence bar."
-    answer_type: yes_no
+  - id: harm_of_delay
+    question: "If this treatment is delayed or denied, what could happen to your health?"
+    why_it_matters: "Serious or worsening conditions qualify for an expedited appeal and, in many states, for external review with a lower evidence bar. This also feeds directly into the urgency argument in your letter."
+    answer_type: free_text
     unlocks: [urgency, expedited_request]
 
 arguments:
@@ -158,13 +163,13 @@ arguments:
   - id: urgency
     strength: medium
     requires:
-      questions: { condition_serious: true }
+      questions: { harm_of_delay: nonempty }
       evidence: []
     claim: "The condition is serious; delay or denial has grave consequences and the appeal should be expedited."
     template: >
-      My condition is serious and {harm_of_delay}. My physician has confirmed
-      that delay in treatment risks significant harm. I request that this appeal
-      be handled on an expedited basis.
+      My condition is serious. Without this treatment, {harm_of_delay}. My
+      physician has confirmed that delay in treatment risks significant harm.
+      I request that this appeal be handled on an expedited basis.
 
   - id: request_specialist_review
     strength: weak

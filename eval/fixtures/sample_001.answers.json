@@ -1,7 +1,8 @@
 {
   "doctor_recommended": true,
+  "diagnosis_plain": "chronic lower back pain from a suspected disc problem",
   "has_lmn": false,
   "tried_alternatives": "physical therapy for eight weeks and over-the-counter pain medication",
-  "condition_worsening": false,
+  "harm_of_delay": "my back pain could keep worsening and I could lose mobility without imaging to guide treatment",
   "records_sent": "Yes"
 }

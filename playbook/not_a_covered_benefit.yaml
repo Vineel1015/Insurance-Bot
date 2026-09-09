@@ -51,6 +51,11 @@ insurer_obligations:
     if_missing_argument: mandated_benefit
 
 clarifying_questions:
+  - id: diagnosis_plain
+    question: "In a sentence or two, what is the medical condition or diagnosis this service is for, in your own words?"
+    why_it_matters: "This helps state clearly why the service you received falls outside the exclusion the plan is relying on."
+    answer_type: free_text
+    unlocks: []
   - id: have_plan_document
     question: "Do you have your plan's full benefit document (often called Summary Plan Description, Evidence of Coverage, or Certificate of Coverage), not just the summary card?"
     why_it_matters: "The exclusion has to be in there. If it isn't, or it's narrower than the insurer claims, that's the appeal."

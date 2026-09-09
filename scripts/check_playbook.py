@@ -32,8 +32,8 @@ def main() -> int:
         aids = {a["id"] for a in d["arguments"]}
         eids = {e["id"] for e in d["evidence_checklist"]}
         nq = len(d["clarifying_questions"])
-        if not 3 <= nq <= 5:
-            problems.append(f"{name}: {nq} clarifying questions (want 3-5)")
+        if not 3 <= nq <= 6:
+            problems.append(f"{name}: {nq} clarifying questions (want 3-6)")
         for q in d["clarifying_questions"]:
             for u in q.get("unlocks", []):
                 if u not in aids and u not in CONTROL_IDS:

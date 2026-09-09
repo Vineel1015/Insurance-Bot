@@ -23,7 +23,10 @@ insurer_obligations:
     text: "..."
     if_missing_argument: <argument id>   # optional
 
-# 3–5 questions. Order by how much each changes the letter.
+# 3–6 questions. Order by how much each changes the letter. A question that
+# exists only to supply a placeholder value (not to gate which arguments are
+# included) should have `unlocks: []` — see diagnosis_plain in several
+# entries for the pattern.
 clarifying_questions:
   - id: <slug>
     question: "..."
