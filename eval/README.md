@@ -3,13 +3,56 @@
 Week 1 lives or dies here. Target: 30–50 real denial letters, redacted, with
 hand-labelled ground truth.
 
+## Quick start
+
+```bash
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Run every letter/label pair under eval/letters + eval/labels:
+python scripts/run_eval.py
+
+# Just one letter, no eval bookkeeping:
+python scripts/extract.py eval/fixtures/sample_001.txt
+```
+
+Real runs write per-letter results and a `summary.json` to
+`eval/results/<run_id>/` (gitignored — regenerate, don't commit). Raw model
+output is cached under `eval/results/raw/<run_id>/<id>.json` by default, so
+re-running the same `--run-id` after a validation-rule or scoring change
+re-scores without spending another API call; pass `--no-raw-cache` to force a
+fresh extraction, or `--raw-cache-dir` to point at a specific cache.
+
+### Smoke-testing without an API key
+
+`eval/fixtures/sample_001.{txt,json}` is a synthetic (fictional insurer,
+fictional patient) letter and hand-written label, checked into git, used to
+exercise the whole pipeline — extraction shape, `VALIDATION.md` rules,
+scoring, null-handling, calibration — without calling the model or touching
+real PHI:
+
+```bash
+python scripts/make_smoketest_fixture.py   # writes a mock extraction with known, documented errors
+python scripts/run_eval.py --letters-dir eval/fixtures --labels-dir eval/fixtures \
+    --raw-cache-dir eval/results/raw/smoketest --run-id smoketest
+```
+
+The mutations `make_smoketest_fixture.py` introduces (a low-confidence but
+correct category, a mismatched deadline anchor, a hallucinated procedure
+code, a hallucinated plan name, a typo'd phone number) are listed in the
+script itself, so the printed report's failures are all expected — use it to
+confirm a change to `validate_rules.py` or `score.py` didn't silently break
+something, not as a real accuracy number.
+
 ## Layout
 
 ```
 eval/
-  letters/   <id>.pdf | <id>.jpg      redacted source documents (never commit unredacted)
+  fixtures/  <id>.txt + <id>.json      synthetic, checked-in smoke-test case (see above)
+  letters/   <id>.pdf | <id>.jpg | <id>.txt   redacted real source documents (never commit unredacted)
   labels/    <id>.json                 ground truth, same shape as denial_extraction.schema.json
-  results/   <run_id>/<id>.json        model outputs (gitignored)
+  results/   <run_id>/<id>.json        model outputs + scores (gitignored)
+  results/raw/<run_id>/<id>.json       cached raw model output (gitignored)
 ```
 
 Ground-truth files use the extraction schema exactly, so the same JSON schema
@@ -51,7 +94,27 @@ photo), not a prompt problem.
 
 ## Runner
 
-`scripts/run_eval.py` (to be written): for each letter, run extraction, run
-`VALIDATION.md` rules, write result, then score against the label. Print a
-table and a JSON summary. Keep prompt version in `extraction_meta` so runs are
-comparable.
+`scripts/run_eval.py`: for each letter with a matching label, runs
+`scripts/extract.py`, applies the `VALIDATION.md` rules
+(`scripts/validate_rules.py`), scores the result against the label
+(`scripts/score.py`), writes a per-letter result file, and prints a summary
+table plus `summary.json`. `extraction_meta.prompt_version` is stamped on
+every extraction so runs stay comparable across prompt changes.
+
+A few scoring notes worth knowing before reading a report:
+
+- The deadline row (`appeal.canonical_deadline`) doesn't compare the raw
+  `deadline_date`/`deadline_days_stated`/`deadline_anchor` fields directly —
+  it runs the same `VALIDATION.md` deadline computation used in production on
+  both the label and the prediction, then compares the two computed dates.
+  That's the number that actually matters to a user.
+- `member.*` fields are scored pass/fail only; the report never prints their
+  label or predicted values (see `SENSITIVE_FIELDS` in `score.py` and P1 in
+  `VALIDATION.md`).
+- Null-handling precision/recall is computed across every leaf field in the
+  schema, not just the ones with an explicit accuracy target — a model that
+  hallucinates values for fields the label leaves blank shows up here even if
+  no other row catches it.
+- The confidence-calibration Brier score only includes fields where the label
+  has a non-null value (there's nothing to calibrate against when the correct
+  answer is "nothing was there").

@@ -1,0 +1,65 @@
+EXAMPLE HEALTH PLAN
+PO Box 90210
+Springfield, ST 00000
+
+Notice of Adverse Benefit Determination
+
+Date of this letter: March 3, 2026
+
+Member: Jane A. Doe
+Member ID: EHP-4471829
+Group Number: GRP-55210
+Claim Number: CLM-2026-003381
+
+Dear Jane A. Doe,
+
+We are writing to let you know that we have denied coverage for the
+following service:
+
+Service: Lumbar spine MRI without contrast
+Provider: Riverside Imaging Center (in-network)
+Date of Service: February 10, 2026
+Procedure Code: 72148
+Diagnosis Code: M54.5
+Amount Billed: $2,400.00
+Amount Denied: $2,400.00
+
+Reason for Denial:
+Based on our review, this service does not meet medical necessity criteria.
+The clinical information submitted does not support the medical necessity
+of an MRI at this time per our medical policy RAD-0091 (InterQual Imaging
+Criteria). Conservative treatment has not been documented for the required
+six-week period prior to imaging.
+
+This decision was made by a Medical Director board certified in Family
+Medicine.
+
+Your Right to Appeal
+
+If you disagree with this decision, you have the right to file an internal
+appeal. You must file your appeal within 180 days of the date of this
+letter.
+
+Appeals may be submitted by mail or fax to:
+
+Example Health Plan
+Attn: Appeals Department
+PO Box 90455
+Springfield, ST 00001
+Fax: (555) 201-9982
+Phone: (555) 201-4400
+
+If your situation is urgent and a delay could seriously jeopardize your
+life, health, or ability to regain maximum function, you may request an
+expedited appeal by calling the number above and asking for an expedited
+review. Expedited appeals are decided within 72 hours.
+
+If your internal appeal is denied, you may have the right to request an
+external review by an independent review organization.
+
+You have the right to request, free of charge, reasonable access to and
+copies of all documents, records, and other information relevant to this
+claim.
+
+Sincerely,
+Example Health Plan Claims Department

@@ -1,0 +1,143 @@
+{
+  "document": {
+    "document_type": { "value": "denial_letter", "confidence": 1.0, "evidence": [
+      { "quote": "Notice of Adverse Benefit Determination", "page": 1 }
+    ]},
+    "letter_date": { "value": "2026-03-03", "confidence": 1.0, "evidence": [
+      { "quote": "March 3, 2026", "page": 1 }
+    ]},
+    "page_count": 1,
+    "language": "en"
+  },
+  "insurer": {
+    "name": { "value": "Example Health Plan", "confidence": 1.0, "evidence": [
+      { "quote": "Example Health Plan", "page": 1 }
+    ]},
+    "plan_name": { "value": null, "confidence": 0, "evidence": [] },
+    "plan_type": { "value": null, "confidence": 0, "evidence": [] },
+    "coverage_type": { "value": null, "confidence": 0, "evidence": [] },
+    "is_self_funded": { "value": null, "confidence": 0, "evidence": [] }
+  },
+  "member": {
+    "member_name": { "value": "Jane A. Doe", "confidence": 1.0, "evidence": [
+      { "quote": "Jane A. Doe", "page": 1 }
+    ]},
+    "patient_name": { "value": null, "confidence": 0, "evidence": [] },
+    "member_id": { "value": "EHP-4471829", "confidence": 1.0, "evidence": [
+      { "quote": "EHP-4471829", "page": 1 }
+    ]},
+    "group_number": { "value": "GRP-55210", "confidence": 1.0, "evidence": [
+      { "quote": "GRP-55210", "page": 1 }
+    ]},
+    "claim_number": { "value": "CLM-2026-003381", "confidence": 1.0, "evidence": [
+      { "quote": "CLM-2026-003381", "page": 1 }
+    ]},
+    "reference_number": { "value": null, "confidence": 0, "evidence": [] }
+  },
+  "provider": {
+    "provider_name": { "value": "Riverside Imaging Center", "confidence": 1.0, "evidence": [
+      { "quote": "Riverside Imaging Center", "page": 1 }
+    ]},
+    "facility_name": { "value": null, "confidence": 0, "evidence": [] },
+    "provider_network_status": { "value": "in_network", "confidence": 1.0, "evidence": [
+      { "quote": "(in-network)", "page": 1 }
+    ]}
+  },
+  "service": {
+    "description": { "value": "Lumbar spine MRI without contrast", "confidence": 1.0, "evidence": [
+      { "quote": "Lumbar spine MRI without contrast", "page": 1 }
+    ]},
+    "procedure_codes": { "value": ["72148"], "confidence": 1.0, "evidence": [
+      { "quote": "72148", "page": 1 }
+    ]},
+    "diagnosis_codes": { "value": ["M54.5"], "confidence": 1.0, "evidence": [
+      { "quote": "M54.5", "page": 1 }
+    ]},
+    "drug_name": { "value": null, "confidence": 0, "evidence": [] },
+    "date_of_service_start": { "value": "2026-02-10", "confidence": 1.0, "evidence": [
+      { "quote": "February 10, 2026", "page": 1 }
+    ]},
+    "date_of_service_end": { "value": null, "confidence": 0, "evidence": [] },
+    "amount_billed": { "value": 2400.00, "confidence": 1.0, "evidence": [
+      { "quote": "Amount Billed: $2,400.00", "page": 1 }
+    ]},
+    "amount_denied": { "value": 2400.00, "confidence": 1.0, "evidence": [
+      { "quote": "Amount Denied: $2,400.00", "page": 1 }
+    ]},
+    "is_partial_denial": { "value": false, "confidence": 1.0, "evidence": [
+      { "quote": "Amount Billed: $2,400.00", "page": 1 },
+      { "quote": "Amount Denied: $2,400.00", "page": 1 }
+    ]}
+  },
+  "denial": {
+    "timing": { "value": "post_service", "confidence": 1.0, "evidence": [
+      { "quote": "Date of Service: February 10, 2026", "page": 1 }
+    ]},
+    "reason_category": { "value": "not_medically_necessary", "confidence": 1.0, "evidence": [
+      { "quote": "this service does not meet medical necessity criteria", "page": 1 }
+    ]},
+    "reason_code": { "value": null, "confidence": 0, "evidence": [] },
+    "reason_text": { "value": "Based on our review, this service does not meet medical necessity criteria. The clinical information submitted does not support the medical necessity of an MRI at this time per our medical policy RAD-0091 (InterQual Imaging Criteria). Conservative treatment has not been documented for the required six-week period prior to imaging.", "confidence": 1.0, "evidence": [
+      { "quote": "Based on our review, this service does not meet medical necessity criteria. The clinical information submitted does not support the medical necessity of an MRI at this time per our medical policy RAD-0091 (InterQual Imaging Criteria). Conservative treatment has not been documented for the required six-week period prior to imaging.", "page": 1 }
+    ]},
+    "criteria_cited": { "value": ["RAD-0091", "InterQual Imaging Criteria"], "confidence": 1.0, "evidence": [
+      { "quote": "our medical policy RAD-0091 (InterQual Imaging Criteria)", "page": 1 }
+    ]},
+    "reviewer_credentials": { "value": "Medical Director board certified in Family Medicine", "confidence": 1.0, "evidence": [
+      { "quote": "This decision was made by a Medical Director board certified in Family Medicine.", "page": 1 }
+    ]},
+    "is_final_internal_decision": { "value": false, "confidence": 1.0, "evidence": [
+      { "quote": "you have the right to file an internal appeal", "page": 1 },
+      { "quote": "If your internal appeal is denied, you may have the right to request an external review", "page": 1 }
+    ]}
+  },
+  "appeal": {
+    "deadline_date": { "value": null, "confidence": 0, "evidence": [] },
+    "deadline_days_stated": { "value": 180, "confidence": 1.0, "evidence": [
+      { "quote": "You must file your appeal within 180 days of the date of this letter.", "page": 1 }
+    ]},
+    "deadline_anchor": { "value": "letter_date", "confidence": 1.0, "evidence": [
+      { "quote": "within 180 days of the date of this letter", "page": 1 }
+    ]},
+    "deadline_basis_text": { "value": "You must file your appeal within 180 days of the date of this letter.", "confidence": 1.0, "evidence": [
+      { "quote": "You must file your appeal within 180 days of the date of this letter.", "page": 1 }
+    ]},
+    "internal_appeal_levels": { "value": null, "confidence": 0, "evidence": [] },
+    "submission_address": { "value": "Example Health Plan, Attn: Appeals Department, PO Box 90455, Springfield, ST 00001", "confidence": 1.0, "evidence": [
+      { "quote": "Example Health Plan\nAttn: Appeals Department\nPO Box 90455\nSpringfield, ST 00001", "page": 1 }
+    ]},
+    "submission_fax": { "value": "(555) 201-9982", "confidence": 1.0, "evidence": [
+      { "quote": "Fax: (555) 201-9982", "page": 1 }
+    ]},
+    "submission_portal_url": { "value": null, "confidence": 0, "evidence": [] },
+    "submission_phone": { "value": "(555) 201-4400", "confidence": 1.0, "evidence": [
+      { "quote": "Phone: (555) 201-4400", "page": 1 }
+    ]},
+    "expedited_available": { "value": true, "confidence": 1.0, "evidence": [
+      { "quote": "you may request an expedited appeal by calling the number above and asking for an expedited review", "page": 1 }
+    ]},
+    "expedited_criteria_text": { "value": "If your situation is urgent and a delay could seriously jeopardize your life, health, or ability to regain maximum function, you may request an expedited appeal by calling the number above and asking for an expedited review.", "confidence": 1.0, "evidence": [
+      { "quote": "If your situation is urgent and a delay could seriously jeopardize your life, health, or ability to regain maximum function, you may request an expedited appeal by calling the number above and asking for an expedited review.", "page": 1 }
+    ]},
+    "expedited_phone": { "value": "(555) 201-4400", "confidence": 1.0, "evidence": [
+      { "quote": "calling the number above", "page": 1 }
+    ]},
+    "external_review_available": { "value": true, "confidence": 1.0, "evidence": [
+      { "quote": "you may have the right to request an external review by an independent review organization", "page": 1 }
+    ]},
+    "external_review_body": { "value": "independent review organization", "confidence": 1.0, "evidence": [
+      { "quote": "independent review organization", "page": 1 }
+    ]},
+    "external_review_deadline_text": { "value": null, "confidence": 0, "evidence": [] },
+    "right_to_request_file_stated": { "value": true, "confidence": 1.0, "evidence": [
+      { "quote": "You have the right to request, free of charge, reasonable access to and copies of all documents, records, and other information relevant to this claim.", "page": 1 }
+    ]}
+  },
+  "extraction_meta": {
+    "model": "ground_truth",
+    "prompt_version": "0.1.0",
+    "schema_version": "0.1.0",
+    "ocr_quality": "good",
+    "warnings": []
+  }
+}
