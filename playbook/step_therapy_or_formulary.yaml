@@ -62,11 +62,23 @@ clarifying_questions:
     why_it_matters: "A contraindication or expected ineffectiveness is a mandatory exception ground in many states."
     answer_type: yes_no
     unlocks: [contraindicated]
+  - id: contraindication_reason
+    question: "In a few words, why is the required alternative unsafe or expected to be ineffective for you (for example: allergy, drug interaction, a condition that makes it risky)?"
+    why_it_matters: "This states the specific reason in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { contraindication: true }
+    unlocks: []
   - id: currently_stable
     question: "Are you currently taking the prescribed drug and doing well on it (for example, it was covered under a previous plan or a sample)?"
     why_it_matters: "Forcing a stable patient to switch is a recognised exception ground and a strong argument on its own."
     answer_type: yes_no
     unlocks: [stable_on_current]
+  - id: stable_duration
+    question: "About how long have you been taking this medication and doing well on it (for example: '8 months', 'over a year')?"
+    why_it_matters: "This states how long you've been stable in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { currently_stable: true }
+    unlocks: []
   - id: quantity_reason
     question: "If this is a quantity or dose limit, did your doctor prescribe the higher amount for a specific reason?"
     why_it_matters: "Quantity-limit exceptions are granted when the prescriber documents why the standard dose is insufficient."
@@ -77,6 +89,11 @@ clarifying_questions:
     why_it_matters: "This qualifies you for an expedited exception decision within 24 hours, and it's used directly in your letter."
     answer_type: free_text
     unlocks: [urgency_argument, expedited_request]
+  - id: state_step_therapy_law
+    question: "If you know your state has a step-therapy override law, name or describe it here. Leave blank if you're not sure."
+    why_it_matters: "Naming the specific law strengthens the argument, but we'll still reference that these protections often exist even if you don't know the name."
+    answer_type: free_text
+    unlocks: []
 
 arguments:
   - id: already_failed

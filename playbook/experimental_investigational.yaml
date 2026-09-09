@@ -60,6 +60,18 @@ clarifying_questions:
     why_it_matters: "A specialist stating this is standard practice, with citations, is the core of this appeal."
     answer_type: yes_no
     unlocks: [specialist_standard_of_care]
+  - id: treating_physician_name
+    question: "What is the name of the specialist who recommended this treatment?"
+    why_it_matters: "This names your specialist in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { specialist_recommended: true }
+    unlocks: []
+  - id: relevant_specialty
+    question: "What is that specialist's medical specialty (for example: Oncology, Cardiology, Rheumatology)?"
+    why_it_matters: "This names the relevant specialty in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { specialist_recommended: true }
+    unlocks: []
   - id: guidelines_known
     question: "Do you or your doctor know of professional guidelines (for example from a medical society) that recommend this treatment for your condition?"
     why_it_matters: "Guidelines from the relevant specialty society are the evidence insurers find hardest to dismiss."

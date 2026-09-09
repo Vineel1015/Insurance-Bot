@@ -53,6 +53,14 @@ STRENGTH_RANK = {"strong": 0, "medium": 1, "weak": 2}
 CRITERIA_GATED_ARGUMENTS = {"request_criteria", "request_policy"}
 REVIEWER_GATED_ARGUMENTS = {"request_reviewer_credentials", "request_specialist_review", "request_reviewer"}
 
+# The inverse: arguments that quote or respond to the insurer's own cited
+# criteria (via {denial.criteria_cited.value}) only make sense when the
+# letter actually cited some. Without this gate, an unconditional argument
+# like criteria_actually_met would render "The denial cites ." when nothing
+# was cited — exactly the case CRITERIA_GATED_ARGUMENTS's request_criteria
+# exists to handle instead.
+CRITERIA_REQUIRED_ARGUMENTS = {"criteria_actually_met"}
+
 TOKEN_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_.]*)\}")
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -111,6 +119,8 @@ def select_arguments(playbook: dict, extraction: dict, answers: dict) -> list[di
         if arg["id"] in CRITERIA_GATED_ARGUMENTS and criteria_already_disclosed:
             continue
         if arg["id"] in REVIEWER_GATED_ARGUMENTS and reviewer_already_disclosed:
+            continue
+        if arg["id"] in CRITERIA_REQUIRED_ARGUMENTS and not criteria_already_disclosed:
             continue
         selected.append(arg)
 
@@ -187,11 +197,25 @@ def humanize_token(token: str) -> str:
     return token.replace(".", " ").replace("_", " ")
 
 
+_SENTENCE_START_RE = re.compile(r"(^|[.!?])\s*$")
+
+
 def render_template(template: str, context: dict, unresolved: set[str]) -> str:
+    """Substitutes {token} with its resolved value. When a token falls at the
+    start of a sentence (string start, or right after ". "/"! "/"? "), the
+    resolved value's first letter is capitalized — free-text answers are
+    typically typed lowercase, and several templates insert them as their
+    own sentence (e.g. "{cob_rule_applied}." after a period), so without this
+    the letter would read "...secondary. it already processed...".
+    """
     def repl(m: re.Match) -> str:
         token = m.group(1)
+        at_sentence_start = bool(_SENTENCE_START_RE.search(template[: m.start()]))
         if token in context:
-            return context[token]
+            val = context[token]
+            if at_sentence_start and val:
+                val = val[0].upper() + val[1:]
+            return val
         unresolved.add(token)
         return f"[[ FILL IN — {humanize_token(token)} ]]"
 
@@ -200,8 +224,18 @@ def render_template(template: str, context: dict, unresolved: set[str]) -> str:
 
 # --------------------------------------------------------------- letter ----
 
+_REPEATED_TERMINAL_PUNCT_RE = re.compile(r"([.!?])(\s*[.!?])+")
+
+
 def _wrap_paragraph(text: str) -> str:
-    return re.sub(r"[ \t]+", " ", text.strip())
+    text = re.sub(r"[ \t]+", " ", text.strip())
+    # A free-text answer inserted as its own sentence may or may not already
+    # end with terminal punctuation, and several templates add a "." after
+    # the placeholder to cover the case where it doesn't. When the answer
+    # *did* include one, that produces "...worsen.." or "...worsen. .": collapse
+    # any run of terminal punctuation (with optional whitespace between) down
+    # to the first mark, so the letter never carries a doubled period.
+    return _REPEATED_TERMINAL_PUNCT_RE.sub(r"\1", text)
 
 
 def build_evidence_checklist(playbook: dict, selected_arguments: list[dict], evidence_in_hand: set[str]) -> list[dict]:

@@ -58,6 +58,12 @@ clarifying_questions:
       - "I was already being treated by this provider before my plan or their network changed"
       - "I chose this provider knowing they were out of network"
     unlocks: [emergency, no_surprises_act, network_inadequate, directory_error, continuity_of_care]
+  - id: emergency_symptoms
+    question: "In a few words, what symptoms or condition brought you to the emergency room?"
+    why_it_matters: "This describes the emergency in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { situation: "It was an emergency" }
+    unlocks: []
   - id: sought_in_network
     question: "Did you try to find an in-network provider first? If so, what happened?"
     why_it_matters: "Showing you looked and couldn't find one (or the wait was months) makes the network-adequacy argument concrete."
@@ -68,6 +74,24 @@ clarifying_questions:
     why_it_matters: "Directory-error appeals are strong with proof and weak without it. Even the date you checked helps."
     answer_type: yes_no
     unlocks: [directory_error]
+  - id: directory_source
+    question: "Where did you check (for example: the insurer's website directory, a phone call to member services, the insurer's mobile app)?"
+    why_it_matters: "This names exactly where you confirmed the provider was in network."
+    answer_type: free_text
+    depends_on: { directory_evidence: true }
+    unlocks: []
+  - id: directory_check_date
+    question: "What date did you check or call?"
+    why_it_matters: "The date matters — a directory can be accurate today and wrong on the date you checked, or vice versa."
+    answer_type: date
+    depends_on: { directory_evidence: true }
+    unlocks: []
+  - id: directory_evidence_description
+    question: "Briefly describe what you have as proof (for example: a screenshot of the directory listing, notes from the call including the rep's name)."
+    why_it_matters: "This describes your proof in the letter itself."
+    answer_type: free_text
+    depends_on: { directory_evidence: true }
+    unlocks: []
   - id: gap_exception_requested
     question: "Did anyone (you or the provider's office) ask the insurer in advance for a 'network gap exception' or 'single-case agreement'?"
     why_it_matters: "If it was requested and refused, or never answered, that strengthens the appeal. If not, we'll ask for one retroactively."
@@ -79,6 +103,12 @@ clarifying_questions:
     why_it_matters: "Continuity-of-care rules usually require the plan to keep covering an ongoing course of treatment for a transition period."
     answer_type: yes_no
     unlocks: [continuity_of_care]
+  - id: network_change_event
+    question: "Briefly describe what changed (for example: 'my plan switched insurers on Jan 1' or 'my provider left the network on March 15')."
+    why_it_matters: "This describes exactly what changed in the continuity-of-care argument."
+    answer_type: free_text
+    depends_on: { mid_treatment: true }
+    unlocks: []
   - id: diagnosis_plain
     question: "In a sentence or two, what is the medical condition or diagnosis you're being treated for?"
     why_it_matters: "If you're in the middle of ongoing treatment, this names your condition in the continuity-of-care argument."
@@ -144,8 +174,8 @@ arguments:
       plan's network. I relied on that information in good faith. Plans are
       responsible for the accuracy of their provider directories, and a member
       who relies on an inaccurate listing is entitled to in-network cost-sharing
-      for the services received. The enclosed {directory_evidence_description}
-      documents what I was told.
+      for the services received. I have enclosed {directory_evidence_description},
+      which documents what I was told.
 
   - id: continuity_of_care
     strength: medium

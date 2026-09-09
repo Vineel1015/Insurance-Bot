@@ -59,28 +59,101 @@ clarifying_questions:
     why_it_matters: "Proof of coverage on the date of service resolves most eligibility denials on its own."
     answer_type: free_text
     unlocks: [proof_of_coverage]
+  - id: coverage_proof_type
+    question: "What kind of proof do you have of your coverage (for example: ID card, enrolment confirmation, pay stub, HR letter)?"
+    why_it_matters: "This names your proof in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { coverage_status: nonempty }
+    unlocks: []
+  - id: coverage_effective_date
+    question: "What date did your coverage with this plan start (or become effective again)?"
+    why_it_matters: "This states your coverage start date in the letter instead of leaving a blank."
+    answer_type: date
+    depends_on: { coverage_status: nonempty }
+    unlocks: []
   - id: other_coverage
     question: "Did you (or the patient) have any other health insurance on the date of service, such as a spouse's plan, a parent's plan, or an old plan that hadn't been cancelled?"
     why_it_matters: "If there truly is other coverage, we need to figure out which plan is primary. If there isn't, the plan just needs to be told so."
     answer_type: choice
     choices: ["No other coverage", "Yes, another plan was active", "An old plan that should have ended", "Not sure"]
     unlocks: [no_other_coverage, cob_order_correct, old_plan_terminated]
+  - id: other_plan_name
+    question: "What is the name of the other insurance plan?"
+    why_it_matters: "This names the other plan in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { other_coverage: "Yes, another plan was active" }
+    unlocks: []
+  - id: primary_or_secondary
+    question: "Based on standard coordination-of-benefits rules, should this plan be primary or secondary? Your best guess is fine — for example, your own employer plan is usually primary over a spouse's plan."
+    why_it_matters: "This states the plan's correct position in the letter (as in: 'this plan is primary')."
+    answer_type: choice
+    choices: ["primary", "secondary"]
+    depends_on: { other_coverage: "Yes, another plan was active" }
+    unlocks: []
+  - id: cob_rule_applied
+    question: "In one sentence, why should this plan be primary or secondary? For example: 'I am the subscriber and this is my own employer plan' or 'My birthday is earlier in the year than my spouse's.'"
+    why_it_matters: "This states the specific coordination-of-benefits rule in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { other_coverage: "Yes, another plan was active" }
+    unlocks: []
+  - id: other_plan_action_taken
+    question: "Has the other plan already processed this claim? If so, briefly describe what happened (for example: paid as primary, denied, still pending)."
+    why_it_matters: "This describes the other plan's status in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { other_coverage: "Yes, another plan was active" }
+    unlocks: []
+  - id: old_plan_name
+    question: "What is the name of the old plan that should have ended?"
+    why_it_matters: "This names the old plan in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { other_coverage: "An old plan that should have ended" }
+    unlocks: []
+  - id: old_plan_termination_date
+    question: "What date did that old plan end?"
+    why_it_matters: "This states the termination date in the letter instead of leaving a blank."
+    answer_type: date
+    depends_on: { other_coverage: "An old plan that should have ended" }
+    unlocks: []
   - id: cob_form
     question: "Did the insurer send you a form asking about other insurance (a coordination of benefits questionnaire), and did you return it?"
     why_it_matters: "An unreturned COB form is the single most common cause of this denial. Returning it usually reopens the claim without an appeal."
     answer_type: choice
     choices: ["Returned it", "Received it, not returned", "Never received it", "Not sure"]
     unlocks: [cob_form_response]
+  - id: cob_information_summary
+    question: "Briefly summarize your other-insurance situation as you'd answer that questionnaire (for example: 'I have no other coverage' or 'My spouse's plan through Example Corp is my secondary coverage')."
+    why_it_matters: "This supplies the coordination-of-benefits information directly in this letter, in case the form is lost or was never received."
+    answer_type: free_text
+    depends_on: { cob_form: ["Received it, not returned", "Never received it", "Not sure"] }
+    unlocks: []
   - id: enrolment_change
     question: "Was there a recent change: new job, open enrolment, marriage, birth, turning 26, a missed premium, or a switch between plans?"
     why_it_matters: "Eligibility gaps almost always trace to a transition. Knowing which one tells us what document proves coverage."
     answer_type: free_text
     unlocks: [proof_of_coverage, retroactive_enrolment, grace_period_reinstatement]
+  - id: enrolment_processed_date
+    question: "If your enrolment was processed later than when it should have started, what date was it actually processed?"
+    why_it_matters: "This shows the gap between when coverage should have started and when the plan's records caught up."
+    answer_type: date
+    depends_on: { enrolment_change: nonempty }
+    unlocks: []
+  - id: premium_payment_date
+    question: "If a premium payment was late or missed, what date was it paid?"
+    why_it_matters: "This shows your coverage was reinstated (or continued through a grace period) and when."
+    answer_type: date
+    depends_on: { enrolment_change: nonempty }
+    unlocks: []
   - id: id_mismatch
     question: "Does the member ID, name, and date of birth on the denial match your ID card exactly?"
     why_it_matters: "A single wrong digit makes you 'not our insured'. The provider resubmits with the right information and the denial goes away."
     answer_type: yes_no
     unlocks: [identifier_correction]
+  - id: mismatch_detail
+    question: "What information was incorrect on the claim (for example: wrong member ID, wrong date of birth, misspelled name)?"
+    why_it_matters: "This states exactly what needs to be corrected in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { id_mismatch: false }
+    unlocks: []
 
 arguments:
   - id: proof_of_coverage
@@ -115,9 +188,9 @@ arguments:
       evidence: [other_plan_details]
     claim: "Under standard coordination-of-benefits rules, this plan is primary (or the other plan has already paid and this plan is secondary)."
     template: >
-      On the date of service I was also covered by {other_plan_name}. Under
-      standard coordination-of-benefits rules, {cob_rule_applied}, this plan
-      is {primary_or_secondary}. {other_plan_action_taken}. I request that the
+      On the date of service I was also covered by {other_plan_name}. This
+      plan is {primary_or_secondary} under standard coordination-of-benefits
+      rules: {cob_rule_applied}. {other_plan_action_taken}. I request that the
       claim be processed accordingly, and I have enclosed the other plan's
       information and, where applicable, its explanation of benefits.
 

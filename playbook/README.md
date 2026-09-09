@@ -77,8 +77,41 @@ knowing before editing a playbook file:
   imaging center standing in as "my treating physician, Example Imaging
   Center, has determined..."). Where a template specifically means the
   prescribing/treating/referring physician, use `{treating_physician_name}`
-  instead — the schema doesn't capture that separately yet, so the generator
-  always leaves it as an explicit `[[ FILL IN ]]` rather than guessing.
+  instead — the extraction schema doesn't capture that separately, so this is
+  always answered by a clarifying question, never guessed from `provider`.
+
+## Closing placeholder gaps
+
+Every bare `{token}` in an argument's `template` must be answerable by some
+question's `id` in the same file, or be one of the two values the generator
+derives in code (`deadline`, `provider_last_name` — see `build_context()` in
+`letter_generator.py`). `scripts/check_playbook.py` enforces this: it fails
+if any template references a token with no matching question, so a template
+can no longer silently ship with an unclosed `[[ FILL IN ]]` gap the author
+didn't notice.
+
+Two patterns keep the up-front questionnaire short while still closing every
+gap:
+
+- **Reuse an existing question's answer.** `tried_alternatives` and
+  `harm_of_delay` both gate whether an argument is included *and* supply the
+  text that goes in it — no separate question needed. Prefer this whenever a
+  question you'd ask anyway already contains the value.
+- **Add a follow-up with `depends_on`.** Most gaps only matter for one narrow
+  scenario (the other insurer's name only matters if the user said they had
+  other coverage). Give the fill-in question its own `id`, tie it to its
+  trigger with `depends_on`, and it won't count against the 3–6 top-level cap
+  — see `_template.yaml` for the exact grammar. It's fine, and expected, for
+  a genuinely branchy category like `eligibility_or_coordination_of_benefits`
+  to have five or six top-level questions and another dozen follow-ups that
+  most users never see.
+
+A few gaps are legitimately optional — the user may not know the answer
+(e.g. `mismatch_reason_if_known` when a denial has no obvious explanation, or
+`plan_page_ref` when the user hasn't located the exact page). For those,
+still add the question so an answer *can* close the gap, but say plainly in
+`why_it_matters` or the question text that leaving it blank is fine; the
+generator will render a visible `[[ FILL IN ]]` rather than block on it.
 
 ## Rights that apply across categories (commercial plans)
 
@@ -108,4 +141,8 @@ template; they are starting points, not legal conclusions.
    which question or evidence item it depends on.
 4. Every `argument.template` paragraph must be sendable as-is with the
    placeholders filled. No "[insert compelling reason here]".
-5. Add 3+ labelled letters in `eval/` for the category.
+5. Run `python scripts/check_playbook.py` — it fails if any template
+   placeholder has no matching question (see "Closing placeholder gaps"
+   above) or if the question counts, `unlocks`, `requires`, or `depends_on`
+   references don't line up.
+6. Add 3+ labelled letters in `eval/` for the category.

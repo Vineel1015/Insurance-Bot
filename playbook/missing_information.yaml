@@ -54,6 +54,11 @@ clarifying_questions:
     why_it_matters: "The whole fix is supplying the right thing. If the letter is vague, the first step is a phone call to pin it down."
     answer_type: free_text
     unlocks: [supply_information, request_specifics]
+  - id: enclosed_items
+    question: "In a few words, what are you including with this response (for example: the completed questionnaire, medical records, an itemized bill)?"
+    why_it_matters: "This lists exactly what you're sending in the letter itself."
+    answer_type: free_text
+    unlocks: []
   - id: form_received
     question: "If they asked you for a form (accident questionnaire, other-insurance questionnaire, student status), did you receive it? Have you sent it back?"
     why_it_matters: "These forms are routinely mailed to old addresses or lost. Returning it usually reopens the claim immediately."
@@ -66,6 +71,18 @@ clarifying_questions:
     answer_type: choice
     choices: ["Yes, with proof", "They say yes, no proof", "No", "Not sure"]
     unlocks: [already_supplied, supply_information]
+  - id: submission_date
+    question: "On what date was the information sent to the insurer?"
+    why_it_matters: "This shows it was sent before, or well within, the response window."
+    answer_type: date
+    depends_on: { provider_sent: "Yes, with proof" }
+    unlocks: []
+  - id: submission_method
+    question: "How was it sent (for example: fax, mail, the insurer's online portal, email)?"
+    why_it_matters: "This names how the information was already transmitted in the letter."
+    answer_type: free_text
+    depends_on: { provider_sent: "Yes, with proof" }
+    unlocks: []
   - id: response_deadline
     question: "Does the letter give a deadline to respond with the information? What is it?"
     why_it_matters: "This deadline is often shorter than the appeal deadline. It's the one to act on first."

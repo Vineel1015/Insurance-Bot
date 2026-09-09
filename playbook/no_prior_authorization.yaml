@@ -52,13 +52,49 @@ clarifying_questions:
     question: "Was this emergency care, or care that had to happen urgently before anyone could get approval?"
     why_it_matters: "Emergency care cannot require prior authorization. Urgent care usually has a short window to notify the insurer afterward."
     answer_type: yes_no
-    unlocks: [emergency_exempt]
+    unlocks: [emergency_exempt, urgent_care_notification]
+  - id: emergency_symptoms
+    question: "In a few words, what symptoms or condition brought you to the emergency room or urgent care?"
+    why_it_matters: "This describes the emergency in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { emergency: true }
+    unlocks: []
+  - id: notification_details
+    question: "If you (or your provider) notified the insurer after receiving care, rather than getting approval beforehand, when and how did you do that?"
+    why_it_matters: "For urgent (not full emergency) admissions, notifying the insurer within the plan's window can satisfy the requirement after the fact."
+    answer_type: free_text
+    depends_on: { emergency: true }
+    unlocks: []
   - id: auth_obtained
     question: "Do you know whether anyone actually got an authorization? Check for an authorization or reference number on paperwork from your doctor or the insurer."
     why_it_matters: "A surprising number of these denials are matching errors: the authorization exists but under a different code, date, or provider."
     answer_type: choice
     choices: ["Yes, I have an authorization number", "The doctor's office says they got one", "No, nobody got one", "Not sure"]
     unlocks: [auth_exists_mismatch]
+  - id: authorization_number
+    question: "What is the authorization or reference number?"
+    why_it_matters: "This lets us cite the exact authorization in the letter."
+    answer_type: free_text
+    depends_on: { auth_obtained: ["Yes, I have an authorization number", "The doctor's office says they got one"] }
+    unlocks: []
+  - id: authorization_date
+    question: "What date was the authorization issued?"
+    why_it_matters: "This lets us cite the exact authorization in the letter."
+    answer_type: date
+    depends_on: { auth_obtained: ["Yes, I have an authorization number", "The doctor's office says they got one"] }
+    unlocks: []
+  - id: authorized_service_description
+    question: "What did the authorization approve, in the insurer's or provider's words, if you know?"
+    why_it_matters: "This shows the authorized service matches what was actually billed."
+    answer_type: free_text
+    depends_on: { auth_obtained: ["Yes, I have an authorization number", "The doctor's office says they got one"] }
+    unlocks: []
+  - id: mismatch_reason_if_known
+    question: "Do you know why the claim was still denied despite having an authorization (for example: wrong code billed, wrong date, wrong provider listed)? Leave blank if you're not sure — that's common."
+    why_it_matters: "If you know the specific mismatch, naming it makes the letter more precise. If not, we'll still ask the plan to match the authorization to the claim."
+    answer_type: free_text
+    depends_on: { auth_obtained: ["Yes, I have an authorization number", "The doctor's office says they got one"] }
+    unlocks: []
   - id: provider_network
     question: "Was the doctor or facility in your plan's network?"
     why_it_matters: "In-network providers are usually contractually responsible for getting authorization. If they didn't, you generally can't be billed for it."
@@ -75,6 +111,12 @@ clarifying_questions:
     why_it_matters: "A retroactive authorization is granted when the care meets the plan's criteria; the doctor's letter shows that it does."
     answer_type: yes_no
     unlocks: [retro_auth_request]
+  - id: treating_physician_name
+    question: "What is your treating physician's name?"
+    why_it_matters: "This names your doctor in the retroactive-authorization request instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { care_would_be_approved: true }
+    unlocks: []
 
 arguments:
   - id: emergency_exempt

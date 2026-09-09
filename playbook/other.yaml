@@ -65,6 +65,12 @@ clarifying_questions:
     why_it_matters: "This fills in your diagnosis in the letter instead of leaving a blank for you to complete."
     answer_type: free_text
     unlocks: []
+  - id: treating_physician_name
+    question: "What is your treating physician's name?"
+    why_it_matters: "This names your doctor in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { care_nature: nonempty }
+    unlocks: []
   - id: still_need_care
     question: "Is this about care you still need, or care you already received?"
     why_it_matters: "Care you still need may qualify for an expedited appeal; care already received is about payment."

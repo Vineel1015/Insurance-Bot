@@ -23,10 +23,23 @@ insurer_obligations:
     text: "..."
     if_missing_argument: <argument id>   # optional
 
-# 3–6 questions. Order by how much each changes the letter. A question that
+# 3–6 TOP-LEVEL questions (no `depends_on`) — the ones every user of this
+# category sees. Order by how much each changes the letter. A question that
 # exists only to supply a placeholder value (not to gate which arguments are
 # included) should have `unlocks: []` — see diagnosis_plain in several
 # entries for the pattern.
+#
+# A question with `depends_on` is a FOLLOW-UP: only relevant once its
+# trigger question has been answered a particular way, so it doesn't count
+# against the top-level cap (scripts/check_playbook.py enforces this).
+# `depends_on` uses the same predicate grammar as an argument's
+# `requires.questions` — a literal value, a list of acceptable values, or
+# the "nonempty" sentinel for a free-text answer — but it is documentation
+# for a future interactive Q&A flow, not something the letter generator
+# reads: it only ever looks at final answers, never at when they were asked.
+# Use follow-ups for anything that only applies to one narrow scenario
+# (e.g. "what's the other insurer's name" only matters if the user said
+# they had other coverage) rather than asking everyone up front.
 clarifying_questions:
   - id: <slug>
     question: "..."
@@ -34,6 +47,12 @@ clarifying_questions:
     answer_type: yes_no | free_text | date | choice
     choices: []                        # only for answer_type: choice
     unlocks: [<argument id>, ...]      # arguments that need this answer
+  - id: <followup_slug>
+    question: "..."
+    why_it_matters: "..."
+    answer_type: free_text
+    depends_on: { <trigger question id>: <expected value | [values] | "nonempty"> }
+    unlocks: []                        # follow-ups usually just supply a value
 
 # Ranked. The generator includes every argument whose `requires` are satisfied,
 # in this order. `template` is a paragraph with {placeholders} from the

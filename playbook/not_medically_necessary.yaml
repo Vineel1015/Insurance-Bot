@@ -53,6 +53,18 @@ clarifying_questions:
     why_it_matters: "The strongest appeal is your treating doctor saying, in writing, why you specifically need this."
     answer_type: yes_no
     unlocks: [treating_physician_supports, lmn_needed]
+  - id: treating_physician_name
+    question: "What is your treating physician's name?"
+    why_it_matters: "This names your doctor in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { doctor_recommended: true }
+    unlocks: []
+  - id: relevant_specialty
+    question: "What is your treating physician's medical specialty (for example: Orthopedics, Neurology, Rheumatology)?"
+    why_it_matters: "This is used if the letter also asks the plan to identify the reviewer's specialty."
+    answer_type: free_text
+    depends_on: { doctor_recommended: true }
+    unlocks: []
   - id: diagnosis_plain
     question: "In a sentence or two, what is the medical condition or diagnosis this treatment is for, in your own words?"
     why_it_matters: "This fills in your diagnosis in the letter accurately instead of leaving a blank for you to complete."
@@ -62,7 +74,8 @@ clarifying_questions:
     question: "Do you already have a letter from your doctor explaining why you need this (sometimes called a letter of medical necessity)?"
     why_it_matters: "If yes, we attach it. If no, we'll draft a request you can send to your doctor's office."
     answer_type: yes_no
-    unlocks: [treating_physician_supports]
+    depends_on: { doctor_recommended: true }
+    unlocks: []
   - id: tried_alternatives
     question: "Have you already tried other treatments for this condition that didn't work or caused problems?"
     why_it_matters: "Insurers often deny because they think a cheaper option hasn't been tried. Showing you tried it and it failed is a strong argument."
@@ -79,6 +92,17 @@ clarifying_questions:
     answer_type: choice
     choices: ["Yes", "No", "Not sure"]
     unlocks: [incomplete_record]
+  - id: records_list
+    question: "Briefly list what records you're including (for example: visit notes from Dr. Smith, MRI report, physical therapy notes)."
+    why_it_matters: "This lists exactly what you're sending in the letter itself."
+    answer_type: free_text
+    depends_on: { records_sent: ["No", "Not sure"] }
+    unlocks: []
+  - id: criteria_point_by_point
+    question: "If you were able to get the specific medical criteria from your insurer, briefly explain how your situation meets each part of it. Leave blank if you haven't gotten the criteria yet — we'll still ask for it."
+    why_it_matters: "This is the strongest possible version of this argument, but it only applies once you have the criteria in hand."
+    answer_type: free_text
+    unlocks: []
 
 arguments:
   - id: treating_physician_supports

@@ -66,6 +66,30 @@ clarifying_questions:
     why_it_matters: "We compare the exact exclusion language to what you actually received."
     answer_type: free_text
     unlocks: [exclusion_misapplied]
+  - id: why_exclusion_does_not_fit
+    question: "In your own words, why doesn't this exclusion apply to the service you received? For example: the exclusion is for elective procedures, but yours was medically necessary."
+    why_it_matters: "This is the core of the argument that the exclusion doesn't actually cover your situation."
+    answer_type: free_text
+    depends_on: { have_plan_document: true }
+    unlocks: []
+  - id: covered_category
+    question: "What category of benefit does this service fall under in your plan document (for example: 'outpatient surgery', 'durable medical equipment', 'rehabilitative services')?"
+    why_it_matters: "This names the covered category the service actually falls under, if the exclusion is being misapplied."
+    answer_type: free_text
+    depends_on: { have_plan_document: true }
+    unlocks: []
+  - id: plan_page_ref
+    question: "What page or section of your plan document shows this service is covered, if you found one? Leave blank if you're not sure."
+    why_it_matters: "A specific page reference makes the letter much harder to dismiss, but it's fine if you haven't found one."
+    answer_type: free_text
+    depends_on: { have_plan_document: true }
+    unlocks: []
+  - id: applicable_mandate
+    question: "If you know of a specific law requiring this benefit to be covered, name it here (for example: your state's autism mandate, or the federal mental health parity law). Leave blank if you're not sure."
+    why_it_matters: "Naming the specific law strengthens the argument, but we'll still reference that a mandate may apply even if you don't know the name."
+    answer_type: free_text
+    depends_on: { condition_category: nonempty }
+    unlocks: []
   - id: service_purpose
     question: "What was the treatment for? In particular, was it to fix a medical problem, restore function, or treat pain, rather than to change appearance?"
     why_it_matters: "'Cosmetic' and similar exclusions almost always have an exception for reconstructive or functional treatment."

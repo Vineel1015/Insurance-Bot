@@ -57,16 +57,52 @@ clarifying_questions:
     answer_type: choice
     choices: ["The provider", "I did", "Not sure"]
     unlocks: [good_cause, member_filed_late]
+  - id: member_delay_reason
+    question: "In a few words, why was there a delay in submitting the claim yourself (for example: you didn't receive the bill until later, you were dealing with a medical emergency)?"
+    why_it_matters: "This states the reason for the delay in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { who_filed: "I did" }
+    unlocks: []
   - id: sent_on_time
     question: "Does the provider (or you) have proof the claim was originally sent within the window: a clearinghouse report, fax confirmation, or a mailing receipt?"
     why_it_matters: "'Sent on time, insurer lost it' is the strongest argument, and proof of submission usually wins it outright."
     answer_type: yes_no
     unlocks: [proof_of_timely_submission]
+  - id: original_submission_date
+    question: "What date was the claim originally submitted?"
+    why_it_matters: "This states the original submission date in the letter."
+    answer_type: date
+    depends_on: { sent_on_time: true }
+    unlocks: []
+  - id: proof_type
+    question: "What kind of proof do you have that it was sent on time (for example: a clearinghouse acceptance report, a fax confirmation, a certified mail receipt)?"
+    why_it_matters: "This names your proof in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { sent_on_time: true }
+    unlocks: []
   - id: other_insurer_first
     question: "Was the claim sent to a different insurer first (for example, an old plan, or the other parent's plan), and only sent here after that one denied it?"
     why_it_matters: "Most plans restart the clock from the other insurer's denial date. This is a common and accepted reason."
     answer_type: yes_no
     unlocks: [other_insurer_first_arg]
+  - id: other_insurer_name
+    question: "What is the name of the other insurer the claim was first submitted to?"
+    why_it_matters: "This names the other insurer in the letter instead of leaving a blank."
+    answer_type: free_text
+    depends_on: { other_insurer_first: true }
+    unlocks: []
+  - id: other_insurer_denial_date
+    question: "What date did that other insurer deny the claim or send its explanation of benefits?"
+    why_it_matters: "This is the date the filing clock restarts from."
+    answer_type: date
+    depends_on: { other_insurer_first: true }
+    unlocks: []
+  - id: this_submission_date
+    question: "What date was the claim then submitted to this insurer?"
+    why_it_matters: "This shows the claim was submitted promptly after the other insurer's decision."
+    answer_type: date
+    depends_on: { other_insurer_first: true }
+    unlocks: []
   - id: coverage_info_delay
     question: "Was there a reason the provider couldn't have known your correct insurance in time, such as a new plan, retroactive enrolment, or a card that hadn't arrived?"
     why_it_matters: "Retroactive coverage or missing insurance information is recognised good cause for late filing."
